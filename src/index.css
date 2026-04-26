@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Цвета хранятся как RGB-триплеты ("R G B" без скобок) — чтобы tailwind
+  мог использовать alpha-модификаторы вида `bg-lime-primary/50`.
+*/
+
+:root,
+[data-theme="dark"] {
+  /* Тёмная тема (по умолчанию) */
+  --lime-primary: 198 255 0;
+  --lime-dark: 168 217 0;
+  --lime-muted: 212 255 77;
+
+  --ink-deep: 10 10 10;
+  --ink-card: 17 17 17;
+  --ink-elevated: 26 26 26;
+  --ink-surface: 34 34 34;
+  --ink-border: 42 42 42;
+
+  --text-primary: 255 255 255;
+  --text-secondary: 136 136 136;
+  --text-muted: 68 68 68;
+
+  --danger: 255 59 48;
+  --success: 52 199 89;
+
+  --shadow-color: 0 0 0;
+  --shadow-strength: 0.5;
+
+  /* Прозрачность фонового видео в hero — на тёмном фоне можно ярче */
+  --hero-video-opacity: 0.45;
+
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  /* Светлая тема */
+  --lime-primary: 132 175 0;       /* контрастнее на белом */
+  --lime-dark: 105 140 0;
+  --lime-muted: 168 217 0;
+
+  --ink-deep: 250 250 250;         /* основной фон */
+  --ink-card: 255 255 255;
+  --ink-elevated: 245 245 245;
+  --ink-surface: 240 240 240;
+  --ink-border: 224 224 224;
+
+  --text-primary: 17 17 17;
+  --text-secondary: 102 102 102;
+  --text-muted: 170 170 170;
+
+  --danger: 215 38 30;
+  --success: 30 142 62;
+
+  --shadow-color: 0 0 0;
+  --shadow-strength: 0.08;
+
+  /* На светлом фоне видео делаем заметно тусклее, чтобы не «кричало» */
+  --hero-video-opacity: 0.18;
+
+  color-scheme: light;
+}
+
+html {
+  font-family: 'TikTok Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: rgb(var(--ink-deep));
+  color: rgb(var(--text-primary));
+  font-family: 'TikTok Sans', system-ui, sans-serif;
+  line-height: 1.6;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Скроллбары */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(var(--ink-deep));
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--ink-border));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--ink-surface));
+}
+
+/* Утилиты */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.tracking-display {
+  letter-spacing: 2px;
+}
+.tracking-section {
+  letter-spacing: 1.5px;
+}
+.tracking-badge {
+  letter-spacing: 1px;
+}
+
+/* Анимации */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease;
+}
+.animate-slide-up {
+  animation: slide-up 0.25s ease;
+}
+
+/* Скелетон */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--ink-card)) 0%,
+    rgb(var(--ink-elevated)) 50%,
+    rgb(var(--ink-card)) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+/* Фокус */
+*:focus-visible {
+  outline: 2px solid rgb(var(--lime-primary));
+  outline-offset: 2px;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
