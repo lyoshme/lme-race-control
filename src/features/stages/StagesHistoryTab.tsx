@@ -1,19 +1,15 @@
 import { CalendarDays } from 'lucide-react';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useStorage } from '@/hooks/useStorage';
-import { DataKeys } from '@/lib/data';
 import type { Driver, Stage, Team } from '@/types';
 import { StageCard } from './StageCard';
 
 interface Props {
-  championshipId: string;
+  stages: Stage[];
   drivers: Driver[];
   teams: Team[];
 }
 
-export function StagesHistoryTab({ championshipId, drivers, teams }: Props) {
-  const [stages] = useStorage<Stage[]>(DataKeys.stages(championshipId), true, []);
-
+export function StagesHistoryTab({ stages, drivers, teams }: Props) {
   if (stages.length === 0) {
     return (
       <EmptyState

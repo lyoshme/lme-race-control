@@ -1,16 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Plus, Save, Trash2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/toast/ToastContext';
-import { useStorage } from '@/hooks/useStorage';
-import { DataKeys } from '@/lib/data';
-import * as data from '@/lib/data';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import * as api from '@/lib/api';
 import { SCORING_PRESETS, makeScoringFromPreset } from '@/lib/scoring';
 import type { ScoringSystem } from '@/types';
-import { uuid } from '@/lib/id';
 
 interface Props {
   championshipId: string;
@@ -18,7 +16,16 @@ interface Props {
 
 export function ScoringTab({ championshipId }: Props) {
   const toast = useToast();
-  const [systems] = useStorage<ScoringSystem[]>(DataKeys.scoring(championshipId), true, []);
+  const fetcher = useCallback(
+    () => api.scoring.list(championshipId),
+    [championshipId],
+  );
+  const { data: systemsData } = useSupabaseQuery<ScoringSystem[]>(
+    fetcher,
+    [{ table: 'scoring_systems', filter: `championship_id=eq.${championshipId}` }],
+    [championshipId],
+  );
+  const systems = systemsData ?? [];
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Локальное состояние редактируемой системы
@@ -66,56 +73,68 @@ export function ScoringTab({ championshipId }: Props) {
     toast.info(`Применён пресет «${preset.label}»`);
   }
 
-  function createNew() {
-    const ns: ScoringSystem = {
-      id: uuid(),
-      championshipId,
-      name: 'Новая система',
-      points: [10, 8, 6, 4, 2, 1],
-      bonusPole: 0,
-      bonusFastestLap: 0,
-    };
-    data.setScorings(championshipId, [...systems, ns]);
-    setActiveId(ns.id);
+  async function createNew() {
+    try {
+      const created = await api.scoring.create({
+        championshipId,
+        name: 'Новая система',
+        points: [10, 8, 6, 4, 2, 1],
+        bonusPole: 0,
+        bonusFastestLap: 0,
+      });
+      setActiveId(created.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось создать систему');
+    }
   }
 
-  function createFromPreset(presetKey: string) {
+  async function createFromPreset(presetKey: string) {
     const preset = SCORING_PRESETS.find((p) => p.key === presetKey);
     if (!preset) return;
-    const ns = makeScoringFromPreset(championshipId, preset);
-    data.setScorings(championshipId, [...systems, ns]);
-    setActiveId(ns.id);
-    toast.success(`Создана система «${ns.name}»`);
+    try {
+      const tmp = makeScoringFromPreset(championshipId, preset);
+      const created = await api.scoring.create({
+        championshipId: tmp.championshipId,
+        name: tmp.name,
+        points: tmp.points,
+        bonusPole: tmp.bonusPole,
+        bonusFastestLap: tmp.bonusFastestLap,
+      });
+      setActiveId(created.id);
+      toast.success(`Создана система «${created.name}»`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось создать систему');
+    }
   }
 
-  function save() {
+  async function save() {
     if (!active) return;
     if (!name.trim()) {
       toast.error('Введите название системы');
       return;
     }
     const parsedPoints = points.map((p) => Math.max(0, parseInt(p, 10) || 0));
-    const updated: ScoringSystem = {
-      ...active,
-      name: name.trim(),
-      points: parsedPoints,
-      bonusPole: Math.max(0, parseInt(bonusPole, 10) || 0),
-      bonusFastestLap: Math.max(0, parseInt(bonusFastestLap, 10) || 0),
-    };
-    data.setScorings(
-      championshipId,
-      systems.map((s) => (s.id === updated.id ? updated : s)),
-    );
-    toast.success('Система сохранена');
+    try {
+      await api.scoring.update(active.id, {
+        name: name.trim(),
+        points: parsedPoints,
+        bonusPole: Math.max(0, parseInt(bonusPole, 10) || 0),
+        bonusFastestLap: Math.max(0, parseInt(bonusFastestLap, 10) || 0),
+      });
+      toast.success('Система сохранена');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось сохранить');
+    }
   }
 
-  function deleteActive() {
+  async function deleteActive() {
     if (!active) return;
-    data.setScorings(
-      championshipId,
-      systems.filter((s) => s.id !== active.id),
-    );
-    toast.success('Система удалена');
+    try {
+      await api.scoring.remove(active.id);
+      toast.success('Система удалена');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось удалить');
+    }
   }
 
   if (systems.length === 0) {

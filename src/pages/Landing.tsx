@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Plus, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -6,30 +6,30 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { CreateChampionshipModal } from '@/features/championship/CreateChampionshipModal';
 import { ChampionshipCard } from '@/features/championship/ChampionshipCard';
 import { HeroVideoBackground } from '@/components/layout/HeroVideoBackground';
-import { useStorage } from '@/hooks/useStorage';
-import { DataKeys } from '@/lib/data';
-import * as data from '@/lib/data';
-import type { Championship } from '@/types';
+import { AuthModal } from '@/features/auth/AuthModal';
+import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import * as api from '@/lib/api';
 
 export function Landing() {
-  const [ids] = useStorage<string[]>(DataKeys.championshipList, true, []);
-  const [items, setItems] = useState<Championship[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { session } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
-  useEffect(() => {
-    // Имитация skeleton при загрузке storage
-    setLoading(true);
-    const t = setTimeout(() => {
-      const list = ids
-        .map((id) => data.getChampionship(id))
-        .filter((c): c is Championship => c != null)
-        .sort((a, b) => b.createdAt - a.createdAt);
-      setItems(list);
-      setLoading(false);
-    }, 120);
-    return () => clearTimeout(t);
-  }, [ids]);
+  const fetcher = useCallback(() => api.championships.listApproved(), []);
+  const { data: items, loading } = useSupabaseQuery(
+    fetcher,
+    [{ table: 'championships' }],
+    [],
+  );
+
+  function handleCreateClick() {
+    if (!session) {
+      setAuthOpen(true);
+    } else {
+      setCreateOpen(true);
+    }
+  }
 
   return (
     <>
@@ -64,7 +64,7 @@ export function Landing() {
             <Button
               size="lg"
               icon={<Plus size={18} />}
-              onClick={() => setCreateOpen(true)}
+              onClick={handleCreateClick}
             >
               Создать чемпионат
             </Button>
@@ -78,9 +78,9 @@ export function Landing() {
           <h2 className="text-2xl font-bold tracking-section uppercase">
             Чемпионаты
           </h2>
-          {!loading && items.length > 0 && (
+          {!loading && (items?.length ?? 0) > 0 && (
             <span className="text-xs uppercase tracking-badge text-text-secondary">
-              Всего: {items.length}
+              Всего: {items?.length}
             </span>
           )}
         </div>
@@ -91,13 +91,13 @@ export function Landing() {
               <Skeleton key={i} className="h-72" />
             ))}
           </div>
-        ) : items.length === 0 ? (
+        ) : !items || items.length === 0 ? (
           <EmptyState
             icon={<Trophy size={40} />}
             title="Пока нет чемпионатов"
-            description="Создайте первый чемпионат — настройте команды, пилотов и систему очков, чтобы начать сезон."
+            description="Создайте первый чемпионат — после одобрения админом он появится здесь, и его смогут видеть все."
             action={
-              <Button icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
+              <Button icon={<Plus size={16} />} onClick={handleCreateClick}>
                 Создать чемпионат
               </Button>
             }
@@ -112,6 +112,11 @@ export function Landing() {
       </section>
 
       <CreateChampionshipModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onSignedIn={() => setCreateOpen(true)}
+      />
     </>
   );
 }

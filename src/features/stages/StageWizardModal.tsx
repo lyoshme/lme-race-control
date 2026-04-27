@@ -4,8 +4,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
 import { useToast } from '@/components/toast/ToastContext';
-import { uuid } from '@/lib/id';
-import * as data from '@/lib/data';
+import * as api from '@/lib/api';
 import { applyStageToStandings, buildStageResults } from '@/lib/standingsCalc';
 import type {
   Driver,
@@ -71,11 +70,25 @@ export function StageWizardModal({ open, onClose, championshipId }: Props) {
   // Загрузка данных при открытии
   useEffect(() => {
     if (!open) return;
-    setTeams(data.getTeams(championshipId));
-    setDrivers(data.getDrivers(championshipId));
-    const sc = data.getScorings(championshipId);
-    setScorings(sc);
-    setStandings(data.getStandings(championshipId));
+    let alive = true;
+    void (async () => {
+      try {
+        const [t, d, sc, st] = await Promise.all([
+          api.teams.list(championshipId),
+          api.drivers.list(championshipId),
+          api.scoring.list(championshipId),
+          api.standings.get(championshipId),
+        ]);
+        if (!alive) return;
+        setTeams(t);
+        setDrivers(d);
+        setScorings(sc);
+        setStandings(st);
+        setScoringId(sc[0]?.id ?? '');
+      } catch (e) {
+        console.error(e);
+      }
+    })();
 
     // reset wizard state
     setStep(1);
@@ -83,12 +96,15 @@ export function StageWizardModal({ open, onClose, championshipId }: Props) {
     setTrack('');
     setDate(new Date().toISOString().slice(0, 10));
     setType('race');
-    setScoringId(sc[0]?.id ?? '');
     setParticipantIds([]);
     setOrderedIds([]);
     setPoleId(null);
     setFastestLapId(null);
     setErrors({});
+
+    return () => {
+      alive = false;
+    };
   }, [open, championshipId]);
 
   // Eligible — пилоты в standings (initialized)
@@ -166,7 +182,7 @@ export function StageWizardModal({ open, onClose, championshipId }: Props) {
     setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
   }
 
-  function save() {
+  async function save() {
     if (!scoring || !standings) return;
     setBusy(true);
     try {
@@ -179,8 +195,7 @@ export function StageWizardModal({ open, onClose, championshipId }: Props) {
         driverTeamMap,
       });
 
-      const stage: Stage = {
-        id: uuid(),
+      const stagePayload: Omit<Stage, 'id' | 'createdAt'> = {
         championshipId,
         name: name.trim(),
         track: track.trim(),
@@ -189,22 +204,21 @@ export function StageWizardModal({ open, onClose, championshipId }: Props) {
         scoringId,
         participantIds,
         results,
-        createdAt: Date.now(),
       };
 
       // Сохраняем этап
-      const stages = data.getStages(championshipId);
-      data.setStages(championshipId, [...stages, stage]);
+      const created = await api.stages.create(stagePayload);
 
       // Применяем к standings
       const nextStandings = applyStageToStandings(standings, results);
-      data.setStandings(championshipId, nextStandings);
+      await api.standings.upsert(nextStandings);
 
-      toast.success(`Этап «${stage.name}» добавлен`);
+      toast.success(`Этап «${created.name}» добавлен`);
       onClose();
     } catch (e) {
       console.error(e);
-      toast.error('Не удалось сохранить этап');
+      const msg = e instanceof Error ? e.message : 'Не удалось сохранить этап';
+      toast.error(msg);
     } finally {
       setBusy(false);
     }

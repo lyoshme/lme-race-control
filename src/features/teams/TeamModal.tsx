@@ -5,8 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { FileDropzone } from '@/components/ui/FileDropzone';
 import { ColorPicker } from '@/components/ui/ColorPicker';
 import { useToast } from '@/components/toast/ToastContext';
-import { uuid } from '@/lib/id';
-import * as data from '@/lib/data';
+import * as api from '@/lib/api';
 import type { Team } from '@/types';
 
 interface Props {
@@ -33,36 +32,43 @@ export function TeamModal({ open, onClose, championshipId, team }: Props) {
     }
   }, [open, team]);
 
-  function save() {
+  async function save() {
     if (!name.trim()) {
       setError('Введите название');
       return;
     }
     setSaving(true);
     try {
-      const list = data.getTeams(championshipId);
+      // Загружаем логотип в Storage если он base64
+      let logoUrl = '';
+      if (logo.startsWith('data:')) {
+        logoUrl = await api.uploads.uploadImage('logos', logo);
+      } else if (logo) {
+        logoUrl = logo;
+      }
+
       if (team) {
-        const updated = list.map((t) =>
-          t.id === team.id ? { ...t, name: name.trim(), logo, color } : t,
-        );
-        data.setTeams(championshipId, updated);
+        await api.teams.update(team.id, {
+          name: name.trim(),
+          logo: logoUrl,
+          color,
+        });
         toast.success('Команда обновлена');
       } else {
-        const newTeam: Team = {
-          id: uuid(),
+        await api.teams.create({
           championshipId,
           name: name.trim(),
-          logo,
+          logo: logoUrl,
           color,
           driverIds: [],
-        };
-        data.setTeams(championshipId, [...list, newTeam]);
+        });
         toast.success('Команда добавлена');
       }
       onClose();
     } catch (e) {
       console.error(e);
-      toast.error('Не удалось сохранить');
+      const msg = e instanceof Error ? e.message : 'Не удалось сохранить';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

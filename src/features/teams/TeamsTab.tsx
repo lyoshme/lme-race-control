@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2, UserPlus, Flag, GripVertical } from 'lucide-react';
 import {
   DndContext,
@@ -16,10 +16,10 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/toast/ToastContext';
-import { useStorage } from '@/hooks/useStorage';
-import { DataKeys } from '@/lib/data';
-import * as data from '@/lib/data';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import * as api from '@/lib/api';
 import { CountryFlag } from '@/components/ui/CountryFlag';
 import type { Driver, Team } from '@/types';
 import { TeamModal } from './TeamModal';
@@ -34,8 +34,28 @@ interface Props {
 
 export function TeamsTab({ championshipId }: Props) {
   const toast = useToast();
-  const [teams] = useStorage<Team[]>(DataKeys.teams(championshipId), true, []);
-  const [drivers] = useStorage<Driver[]>(DataKeys.drivers(championshipId), true, []);
+
+  const teamsFetcher = useCallback(
+    () => api.teams.list(championshipId),
+    [championshipId],
+  );
+  const driversFetcher = useCallback(
+    () => api.drivers.list(championshipId),
+    [championshipId],
+  );
+  const teamsQ = useSupabaseQuery<Team[]>(
+    teamsFetcher,
+    [{ table: 'teams', filter: `championship_id=eq.${championshipId}` }],
+    [championshipId],
+  );
+  const driversQ = useSupabaseQuery<Driver[]>(
+    driversFetcher,
+    [{ table: 'drivers', filter: `championship_id=eq.${championshipId}` }],
+    [championshipId],
+  );
+  const teams = teamsQ.data ?? [];
+  const drivers = driversQ.data ?? [];
+  const dataLoading = teamsQ.loading || driversQ.loading;
 
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
@@ -59,35 +79,21 @@ export function TeamsTab({ championshipId }: Props) {
     [drivers],
   );
 
-  function moveDriverToTeam(driverId: string, targetTeamId: string | null) {
+  async function moveDriverToTeam(driverId: string, targetTeamId: string | null) {
     const driver = driverIndex.get(driverId);
     if (!driver) return;
     if (driver.teamId === targetTeamId) return;
 
-    const updatedDrivers = drivers.map((d) =>
-      d.id === driverId ? { ...d, teamId: targetTeamId } : d,
-    );
-    const updatedTeams = teams.map((t) => {
-      // Снять с предыдущей
-      if (t.id === driver.teamId) {
-        return { ...t, driverIds: t.driverIds.filter((id) => id !== driverId) };
-      }
-      // Добавить в новую
-      if (t.id === targetTeamId) {
-        return t.driverIds.includes(driverId)
-          ? t
-          : { ...t, driverIds: [...t.driverIds, driverId] };
-      }
-      return t;
-    });
-
-    data.setDrivers(championshipId, updatedDrivers);
-    data.setTeams(championshipId, updatedTeams);
-
-    const targetName = targetTeamId
-      ? teams.find((t) => t.id === targetTeamId)?.name ?? '—'
-      : 'без команды';
-    toast.success(`${driver.firstName} ${driver.lastName} → ${targetName}`);
+    try {
+      await api.drivers.setTeam(driverId, targetTeamId);
+      const targetName = targetTeamId
+        ? teams.find((t) => t.id === targetTeamId)?.name ?? '—'
+        : 'без команды';
+      toast.success(`${driver.firstName} ${driver.lastName} → ${targetName}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Не удалось переместить';
+      toast.error(msg);
+    }
   }
 
   function onDragStart(e: DragStartEvent) {
@@ -116,29 +122,25 @@ export function TeamsTab({ championshipId }: Props) {
     setDriverModalOpen(true);
   }
 
-  function deleteTeam(team: Team) {
-    // Пилоты команды переходят в "без команды"
-    const updatedDrivers = drivers.map((d) =>
-      d.teamId === team.id ? { ...d, teamId: null } : d,
-    );
-    data.setDrivers(championshipId, updatedDrivers);
-    data.setTeams(championshipId, teams.filter((t) => t.id !== team.id));
-    toast.success(`Команда «${team.name}» удалена`);
+  async function deleteTeam(team: Team) {
+    try {
+      // ON DELETE SET NULL на drivers.team_id — пилоты автоматом «без команды»
+      await api.teams.remove(team.id);
+      toast.success(`Команда «${team.name}» удалена`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Не удалось удалить команду';
+      toast.error(msg);
+    }
   }
 
-  function deleteDriver(driver: Driver) {
-    data.setDrivers(championshipId, drivers.filter((d) => d.id !== driver.id));
-    if (driver.teamId) {
-      data.setTeams(
-        championshipId,
-        teams.map((t) =>
-          t.id === driver.teamId
-            ? { ...t, driverIds: t.driverIds.filter((id) => id !== driver.id) }
-            : t,
-        ),
-      );
+  async function deleteDriver(driver: Driver) {
+    try {
+      await api.drivers.remove(driver.id);
+      toast.success(`Пилот ${driver.lastName} удалён`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Не удалось удалить пилота';
+      toast.error(msg);
     }
-    toast.success(`Пилот ${driver.lastName} удалён`);
   }
 
   const driversByTeam = new Map<string | null, Driver[]>();
@@ -149,6 +151,18 @@ export function TeamsTab({ championshipId }: Props) {
     driversByTeam.set(k, arr);
   }
   const orphans = driversByTeam.get(null) ?? [];
+
+  if (dataLoading && teams.length === 0 && drivers.length === 0) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-12" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-48" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">

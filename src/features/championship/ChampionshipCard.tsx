@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Users, Flag, CalendarDays, Settings } from 'lucide-react';
+import { Flag, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { useRouter } from '@/router';
-import * as data from '@/lib/data';
+import { useAuth } from '@/hooks/useAuth';
 import type { Championship } from '@/types';
 import { DISCIPLINE_LABELS } from '@/types';
 
@@ -12,17 +11,11 @@ interface Props {
 
 export function ChampionshipCard({ championship }: Props) {
   const { goPublic, goManage } = useRouter();
-  const [stats, setStats] = useState({ teams: 0, drivers: 0, stages: 0 });
-  const [isOrganizer, setIsOrganizer] = useState(false);
+  const { session, profile } = useAuth();
 
-  useEffect(() => {
-    setStats({
-      teams: data.getTeams(championship.id).length,
-      drivers: data.getDrivers(championship.id).length,
-      stages: data.getStages(championship.id).length,
-    });
-    setIsOrganizer(data.isOrganizer(championship.id));
-  }, [championship.id]);
+  const isOrganizer =
+    !!(session && championship.ownerId === session.user.id) ||
+    !!profile?.is_admin;
 
   const discipline =
     championship.discipline === 'custom' && championship.disciplineCustom
@@ -71,16 +64,7 @@ export function ChampionshipCard({ championship }: Props) {
             {championship.description || '—'}
           </p>
           <div className="flex items-center gap-3 text-xs text-text-secondary mt-auto pt-2 tabular">
-            <span className="flex items-center gap-1">
-              <Flag size={12} /> {stats.teams}
-            </span>
-            <span className="flex items-center gap-1">
-              <Users size={12} /> {stats.drivers}
-            </span>
-            <span className="flex items-center gap-1">
-              <CalendarDays size={12} /> {stats.stages}
-            </span>
-            <span className="ml-auto text-text-muted uppercase tracking-badge text-[10px]">
+            <span className="text-text-muted uppercase tracking-badge text-[10px]">
               {discipline}
             </span>
           </div>

@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react';
-import { Settings, Flag, Users, CalendarDays, ChevronLeft } from 'lucide-react';
+import { useCallback } from 'react';
+import { Settings, Flag, Users, CalendarDays, ChevronLeft, Clock, Share2 } from 'lucide-react';
 import { Tabs } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Avatar } from '@/components/ui/Avatar';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useRouter } from '@/router';
 import type { PublicTab } from '@/router';
-import { useStorage } from '@/hooks/useStorage';
-import { DataKeys } from '@/lib/data';
-import * as data from '@/lib/data';
-import type { Championship, Driver, Standings, Team } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import { useToast } from '@/components/toast/ToastContext';
+import * as api from '@/lib/api';
+import type { Championship, Driver, Stage, Standings, Team } from '@/types';
 import { DISCIPLINE_LABELS } from '@/types';
 import { DriversTable } from '@/features/standings/DriversTable';
 import { TeamsTable } from '@/features/standings/TeamsTable';
@@ -24,32 +26,105 @@ interface Props {
 
 export function ChampionshipPublic({ championshipId, tab }: Props) {
   const { goHome, goManage, setPublicTab } = useRouter();
+  const { session, profile } = useAuth();
+  const toast = useToast();
 
-  // Подписки
-  const [championship] = useStorage<Championship | null>(
-    DataKeys.championship(championshipId),
-    true,
-    null,
+  const champFetcher = useCallback(
+    () => api.championships.getById(championshipId),
+    [championshipId],
   );
-  const [teams] = useStorage<Team[]>(DataKeys.teams(championshipId), true, []);
-  const [drivers] = useStorage<Driver[]>(DataKeys.drivers(championshipId), true, []);
-  const [standings] = useStorage<Standings | null>(
-    DataKeys.standings(championshipId),
-    true,
-    null,
+  const teamsFetcher = useCallback(
+    () => api.teams.list(championshipId),
+    [championshipId],
+  );
+  const driversFetcher = useCallback(
+    () => api.drivers.list(championshipId),
+    [championshipId],
+  );
+  const standingsFetcher = useCallback(
+    () => api.standings.get(championshipId),
+    [championshipId],
+  );
+  const stagesFetcher = useCallback(
+    () => api.stages.list(championshipId),
+    [championshipId],
   );
 
-  const [organizer, setOrganizer] = useState(false);
-  useEffect(() => {
-    setOrganizer(data.isOrganizer(championshipId));
-  }, [championshipId]);
+  const champFilter = `id=eq.${championshipId}`;
+  const childFilter = `championship_id=eq.${championshipId}`;
+
+  const champQ = useSupabaseQuery<Championship | null>(
+    champFetcher,
+    [{ table: 'championships', filter: champFilter }],
+    [championshipId],
+  );
+  const teamsQ = useSupabaseQuery<Team[]>(
+    teamsFetcher,
+    [{ table: 'teams', filter: childFilter }],
+    [championshipId],
+  );
+  const driversQ = useSupabaseQuery<Driver[]>(
+    driversFetcher,
+    [{ table: 'drivers', filter: childFilter }],
+    [championshipId],
+  );
+  const standingsQ = useSupabaseQuery<Standings | null>(
+    standingsFetcher,
+    [{ table: 'standings', filter: childFilter }],
+    [championshipId],
+  );
+  const stagesQ = useSupabaseQuery<Stage[]>(
+    stagesFetcher,
+    [{ table: 'stages', filter: childFilter }],
+    [championshipId],
+  );
+
+  const championship = champQ.data;
+  const teams = teamsQ.data ?? [];
+  const drivers = driversQ.data ?? [];
+  const standings = standingsQ.data ?? null;
+  const stages = stagesQ.data ?? [];
+  const loading = champQ.loading;
+
+  const isOwner = !!(session && championship?.ownerId === session.user.id);
+  const isAdmin = !!profile?.is_admin;
+  const organizer = isOwner || isAdmin;
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <Skeleton className="h-48 mb-6" />
+        <Skeleton className="h-12 mb-3" />
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
 
   if (!championship) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <EmptyState
           title="Чемпионат не найден"
-          description="Возможно, он был удалён или ссылка неверна."
+          description="Возможно, он был удалён, ещё не одобрен модератором, или ссылка неверна."
+          action={
+            <Button variant="secondary" icon={<ChevronLeft size={16} />} onClick={goHome}>
+              На главную
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  // Pending/Rejected: показываем только владельцу/админу
+  const moderation = championship.moderationStatus;
+  if (moderation !== 'approved' && !organizer) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+        <EmptyState
+          icon={<Clock size={36} />}
+          title="Чемпионат ещё не опубликован"
+          description="Этот чемпионат проходит модерацию или был отклонён. Он станет доступен после одобрения."
           action={
             <Button variant="secondary" icon={<ChevronLeft size={16} />} onClick={goHome}>
               На главную
@@ -83,6 +158,12 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
             <div className="flex flex-col gap-4 max-w-3xl">
               <div className="flex items-center gap-2 flex-wrap">
+                {moderation === 'pending' && (
+                  <Badge variant="muted">На модерации</Badge>
+                )}
+                {moderation === 'rejected' && (
+                  <Badge variant="muted">Отклонён</Badge>
+                )}
                 <Badge variant={championship.status === 'active' ? 'lime' : 'muted'}>
                   {championship.status === 'active' ? 'Активен' : 'Завершён'}
                 </Badge>
@@ -97,16 +178,43 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
                   {championship.slogan}
                 </p>
               )}
-              {organizer && (
-                <div className="flex gap-2 mt-2">
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant="secondary"
+                  icon={<Share2 size={16} />}
+                  onClick={async () => {
+                    const shareUrl = `${window.location.origin}/share/${championshipId}`;
+                    try {
+                      if (navigator.share) {
+                        await navigator.share({
+                          title: championship.title,
+                          text: championship.description || undefined,
+                          url: shareUrl,
+                        });
+                      } else if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(shareUrl);
+                        toast.success('Ссылка скопирована');
+                      } else {
+                        toast.error('Браузер не поддерживает шаринг');
+                      }
+                    } catch (e) {
+                      if (e instanceof Error && e.name !== 'AbortError') {
+                        toast.error('Не удалось поделиться');
+                      }
+                    }
+                  }}
+                >
+                  Поделиться
+                </Button>
+                {organizer && (
                   <Button
                     icon={<Settings size={16} />}
                     onClick={() => goManage(championshipId)}
                   >
                     Управление
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -132,7 +240,7 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
               championship={championship}
               teamsCount={teams.length}
               driversCount={drivers.length}
-              stagesCount={data.getStages(championshipId).length}
+              stagesCount={stages.length}
             />
           )}
           {tab === 'drivers' && (
@@ -153,11 +261,7 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
             <ParticipantsTab teams={teams} drivers={drivers} />
           )}
           {tab === 'stages' && (
-            <StagesHistoryTab
-              championshipId={championshipId}
-              drivers={drivers}
-              teams={teams}
-            />
+            <StagesHistoryTab stages={stages} drivers={drivers} teams={teams} />
           )}
         </div>
       </div>

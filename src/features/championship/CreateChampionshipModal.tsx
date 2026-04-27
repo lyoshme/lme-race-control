@@ -5,10 +5,9 @@ import { Input, Select, Textarea } from '@/components/ui/Input';
 import { FileDropzone } from '@/components/ui/FileDropzone';
 import { useToast } from '@/components/toast/ToastContext';
 import { useRouter } from '@/router';
-import { uuid } from '@/lib/id';
-import * as data from '@/lib/data';
+import * as api from '@/lib/api';
 import { DISCIPLINE_LABELS } from '@/types';
-import type { Championship, Discipline } from '@/types';
+import type { Discipline } from '@/types';
 
 interface Props {
   open: boolean;
@@ -65,30 +64,33 @@ export function CreateChampionshipModal({ open, onClose }: Props) {
     if (!validate()) return;
     setSaving(true);
     try {
-      const id = uuid();
-      const token = uuid();
-      const c: Championship = {
-        id,
+      // Если баннер пришёл как data-URL — заливаем в Storage и получаем URL.
+      let bannerUrl = '';
+      if (banner.startsWith('data:')) {
+        bannerUrl = await api.uploads.uploadImage('banners', banner);
+      } else if (banner) {
+        bannerUrl = banner;
+      }
+
+      const created = await api.championships.create({
         title: title.trim(),
         slogan: slogan.trim(),
         description: description.trim(),
         discipline,
-        disciplineCustom: discipline === 'custom' ? disciplineCustom.trim() : undefined,
+        disciplineCustom:
+          discipline === 'custom' ? disciplineCustom.trim() : undefined,
         season: season.trim(),
-        banner,
-        status: 'active',
-        createdAt: Date.now(),
-      };
-      data.setChampionship(c);
-      data.setChampionshipIds([...data.listChampionshipIds(), id]);
-      data.setOrganizerToken(id, token);
-      toast.success('Чемпионат создан');
+        banner: bannerUrl,
+      });
+
+      toast.success('Отправлено на модерацию');
       reset();
       onClose();
-      goManage(id);
+      goManage(created.id);
     } catch (e) {
       console.error(e);
-      toast.error('Не удалось сохранить чемпионат');
+      const msg = e instanceof Error ? e.message : 'Не удалось сохранить чемпионат';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

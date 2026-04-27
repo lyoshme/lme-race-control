@@ -1,13 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Check, RotateCcw, Flag, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Avatar } from '@/components/ui/Avatar';
 import { useToast } from '@/components/toast/ToastContext';
-import { useStorage } from '@/hooks/useStorage';
-import { DataKeys } from '@/lib/data';
-import * as data from '@/lib/data';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import * as api from '@/lib/api';
 import type { Driver, Standings, Team } from '@/types';
 import { DriversTable } from './DriversTable';
 import { TeamsTable } from './TeamsTable';
@@ -18,13 +17,37 @@ interface Props {
 
 export function StandingsInitTab({ championshipId }: Props) {
   const toast = useToast();
-  const [teams] = useStorage<Team[]>(DataKeys.teams(championshipId), true, []);
-  const [drivers] = useStorage<Driver[]>(DataKeys.drivers(championshipId), true, []);
-  const [standings] = useStorage<Standings | null>(
-    DataKeys.standings(championshipId),
-    true,
-    null,
+
+  const teamsFetcher = useCallback(
+    () => api.teams.list(championshipId),
+    [championshipId],
   );
+  const driversFetcher = useCallback(
+    () => api.drivers.list(championshipId),
+    [championshipId],
+  );
+  const standingsFetcher = useCallback(
+    () => api.standings.get(championshipId),
+    [championshipId],
+  );
+  const teamsQ = useSupabaseQuery<Team[]>(
+    teamsFetcher,
+    [{ table: 'teams', filter: `championship_id=eq.${championshipId}` }],
+    [championshipId],
+  );
+  const driversQ = useSupabaseQuery<Driver[]>(
+    driversFetcher,
+    [{ table: 'drivers', filter: `championship_id=eq.${championshipId}` }],
+    [championshipId],
+  );
+  const standingsQ = useSupabaseQuery<Standings | null>(
+    standingsFetcher,
+    [{ table: 'standings', filter: `championship_id=eq.${championshipId}` }],
+    [championshipId],
+  );
+  const teams = teamsQ.data ?? [];
+  const drivers = driversQ.data ?? [];
+  const standings = standingsQ.data ?? null;
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmReset, setConfirmReset] = useState(false);
@@ -54,7 +77,7 @@ export function StandingsInitTab({ championshipId }: Props) {
     setSelected(new Set());
   }
 
-  function initialize() {
+  async function initialize() {
     const selectedTeams = teams.filter((t) => selected.has(t.id));
     if (selectedTeams.length === 0) {
       toast.error('Выберите хотя бы одну команду');
@@ -82,13 +105,33 @@ export function StandingsInitTab({ championshipId }: Props) {
       driverPoints,
       teamPoints,
     };
-    data.setStandings(championshipId, s);
-    toast.success('Чемпионат инициализирован');
+    try {
+      await api.standings.upsert(s);
+      toast.success('Чемпионат инициализирован');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось инициализировать');
+    }
   }
 
-  function reset() {
-    data.removeStandings(championshipId);
-    toast.success('Таблицы сброшены');
+  async function reset() {
+    try {
+      await api.standings.remove(championshipId);
+      toast.success('Таблицы сброшены');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось сбросить');
+    }
+  }
+
+  async function resetWithStages() {
+    await reset();
+    // Удаляем все этапы чемпионата
+    try {
+      const stages = await api.stages.list(championshipId);
+      await Promise.all(stages.map((s) => api.stages.remove(s.id)));
+    } catch (e) {
+      // не критично
+      console.error(e);
+    }
   }
 
   if (teams.length === 0 || drivers.length === 0) {
@@ -113,7 +156,7 @@ export function StandingsInitTab({ championshipId }: Props) {
             <p className="text-sm text-text-secondary">
               Чемпионат опубликован: команд — {standings.selectedTeamIds.length}, пилотов —{' '}
               {Object.keys(standings.driverPoints).length}. Этапы будут добавлять очки
-              автоматически (модуль этапов — в следующей итерации).
+              автоматически.
             </p>
           </div>
           <Button
@@ -147,8 +190,7 @@ export function StandingsInitTab({ championshipId }: Props) {
           destructive
           confirmLabel="Сбросить"
           onConfirm={() => {
-            reset();
-            data.setStages(championshipId, []);
+            void resetWithStages();
             setConfirmReset(false);
           }}
           onCancel={() => setConfirmReset(false)}

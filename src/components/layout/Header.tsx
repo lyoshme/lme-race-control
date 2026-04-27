@@ -1,6 +1,11 @@
-import { Flag, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
+import { Flag, LogIn, Moon, Sun } from 'lucide-react';
 import type { Route } from '@/router';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/Button';
+import { AuthModal } from '@/features/auth/AuthModal';
+import { UserMenu } from '@/features/auth/UserMenu';
 
 interface Props {
   goHome: () => void;
@@ -9,6 +14,9 @@ interface Props {
 
 export function Header({ goHome, current }: Props) {
   const { theme, toggle } = useTheme();
+  const { session, initializing } = useAuth();
+  const [authOpen, setAuthOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-30 bg-ink-deep/90 backdrop-blur border-b border-ink-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
@@ -24,7 +32,7 @@ export function Header({ goHome, current }: Props) {
         </button>
         <div className="flex items-center gap-3">
           {current.view !== 'landing' && (
-            <span className="text-xs uppercase tracking-badge text-text-secondary hidden sm:block">
+            <span className="text-xs uppercase tracking-badge text-text-secondary hidden lg:block">
               Платформа автоспортивных чемпионатов
             </span>
           )}
@@ -36,8 +44,23 @@ export function Header({ goHome, current }: Props) {
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
+          {!initializing && (
+            session ? (
+              <UserMenu />
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<LogIn size={14} />}
+                onClick={() => setAuthOpen(true)}
+              >
+                Войти
+              </Button>
+            )
+          )}
         </div>
       </div>
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </header>
   );
 }

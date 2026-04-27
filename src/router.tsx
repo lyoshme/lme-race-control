@@ -6,12 +6,16 @@ export type ManageTab = 'settings' | 'teams' | 'scoring' | 'standings' | 'stages
 
 export type Route =
   | { view: 'landing' }
+  | { view: 'account' }
+  | { view: 'admin' }
   | { view: 'public'; championshipId: string; tab: PublicTab }
   | { view: 'manage'; championshipId: string; tab: ManageTab };
 
 interface RouterCtx {
   route: Route;
   goHome: () => void;
+  goAccount: () => void;
+  goAdmin: () => void;
   goPublic: (id: string, tab?: PublicTab) => void;
   goManage: (id: string, tab?: ManageTab) => void;
   setPublicTab: (tab: PublicTab) => void;
@@ -26,6 +30,8 @@ function parseHash(): Route {
   const hash = window.location.hash.replace(/^#\/?/, '');
   if (!hash) return { view: 'landing' };
   const parts = hash.split('/').filter(Boolean);
+  if (parts[0] === 'account') return { view: 'account' };
+  if (parts[0] === 'admin') return { view: 'admin' };
   // championship/:id[/tab] | championship/:id/manage[/tab]
   if (parts[0] === 'championship' && parts[1]) {
     const id = parts[1];
@@ -41,6 +47,8 @@ function parseHash(): Route {
 
 function buildHash(r: Route): string {
   if (r.view === 'landing') return '#/';
+  if (r.view === 'account') return '#/account';
+  if (r.view === 'admin') return '#/admin';
   if (r.view === 'public') return `#/championship/${r.championshipId}/${r.tab}`;
   return `#/championship/${r.championshipId}/manage/${r.tab}`;
 }
@@ -64,6 +72,8 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     () => ({
       route,
       goHome: () => navigate({ view: 'landing' }),
+      goAccount: () => navigate({ view: 'account' }),
+      goAdmin: () => navigate({ view: 'admin' }),
       goPublic: (id, tab = 'overview') =>
         navigate({ view: 'public', championshipId: id, tab }),
       goManage: (id, tab = 'settings') =>

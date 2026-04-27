@@ -1,4 +1,5 @@
 export type ChampionshipStatus = 'active' | 'finished';
+export type ChampionshipModerationStatus = 'pending' | 'approved' | 'rejected';
 
 export type Discipline =
   | 'formula1'
@@ -13,13 +14,18 @@ export interface Championship {
   id: string;
   title: string;
   slogan: string;
-  banner: string; // base64 data URL или ''
+  banner: string; // URL (Supabase Storage) или ''
   description: string;
   discipline: Discipline;
   disciplineCustom?: string;
   season: string;
   status: ChampionshipStatus;
   createdAt: number;
+  /** Бэкенд-поля (заполняются при чтении из БД) */
+  ownerId?: string;
+  moderationStatus?: ChampionshipModerationStatus;
+  rejectionReason?: string;
+  approvedAt?: number;
 }
 
 export interface Team {

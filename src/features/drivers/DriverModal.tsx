@@ -5,8 +5,7 @@ import { Input, Select } from '@/components/ui/Input';
 import { FileDropzone } from '@/components/ui/FileDropzone';
 import { CountrySelect } from '@/components/ui/CountrySelect';
 import { useToast } from '@/components/toast/ToastContext';
-import { uuid } from '@/lib/id';
-import * as data from '@/lib/data';
+import * as api from '@/lib/api';
 import type { Driver, Team } from '@/types';
 
 interface Props {
@@ -64,61 +63,41 @@ export function DriverModal({
     return Object.keys(e).length === 0;
   }
 
-  function save() {
+  async function save() {
     if (!validate()) return;
     setSaving(true);
     try {
-      const drivers = data.getDrivers(championshipId);
-      const teams = data.getTeams(championshipId);
-      const newTeamId = teamId || null;
-
-      let updatedDrivers: Driver[];
-      if (driver) {
-        updatedDrivers = drivers.map((d) =>
-          d.id === driver.id
-            ? {
-                ...d,
-                firstName: firstName.trim(),
-                lastName: lastName.trim(),
-                number: number.trim(),
-                country,
-                photo,
-                teamId: newTeamId,
-              }
-            : d,
-        );
-      } else {
-        const newDriver: Driver = {
-          id: uuid(),
-          championshipId,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          number: number.trim(),
-          country,
-          photo,
-          teamId: newTeamId,
-        };
-        updatedDrivers = [...drivers, newDriver];
+      // Загружаем фото в Storage если оно base64
+      let photoUrl = '';
+      if (photo.startsWith('data:')) {
+        photoUrl = await api.uploads.uploadImage('photos', photo);
+      } else if (photo) {
+        photoUrl = photo;
       }
 
-      data.setDrivers(championshipId, updatedDrivers);
+      const newTeamId = teamId || null;
+      const payload = {
+        championshipId,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        number: number.trim(),
+        country,
+        photo: photoUrl,
+        teamId: newTeamId,
+      };
 
-      // Синхронизация Team.driverIds
-      const driverId = driver?.id ?? updatedDrivers[updatedDrivers.length - 1].id;
-      const updatedTeams: Team[] = teams.map((t) => ({
-        ...t,
-        driverIds:
-          t.id === newTeamId
-            ? Array.from(new Set([...t.driverIds.filter((id) => id !== driverId), driverId]))
-            : t.driverIds.filter((id) => id !== driverId),
-      }));
-      data.setTeams(championshipId, updatedTeams);
+      if (driver) {
+        await api.drivers.update(driver.id, payload);
+      } else {
+        await api.drivers.create(payload);
+      }
 
       toast.success(driver ? 'Пилот обновлён' : 'Пилот добавлен');
       onClose();
     } catch (e) {
       console.error(e);
-      toast.error('Не удалось сохранить');
+      const msg = e instanceof Error ? e.message : 'Не удалось сохранить';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

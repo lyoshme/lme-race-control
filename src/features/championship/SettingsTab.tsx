@@ -6,7 +6,7 @@ import { FileDropzone } from '@/components/ui/FileDropzone';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/toast/ToastContext';
 import { useRouter } from '@/router';
-import * as data from '@/lib/data';
+import * as api from '@/lib/api';
 import type { Championship, ChampionshipStatus, Discipline } from '@/types';
 import { DISCIPLINE_LABELS } from '@/types';
 
@@ -29,37 +29,47 @@ export function SettingsTab({ championship }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  function save() {
+  async function save() {
     if (!title.trim()) {
       toast.error('Название не может быть пустым');
       return;
     }
     setSaving(true);
     try {
-      data.setChampionship({
-        ...championship,
+      // Если баннер пришёл как data-URL — заливаем в Storage.
+      let bannerUrl = banner;
+      if (banner.startsWith('data:')) {
+        bannerUrl = await api.uploads.uploadImage('banners', banner);
+      }
+
+      await api.championships.update(championship.id, {
         title: title.trim(),
         slogan: slogan.trim(),
         description: description.trim(),
         discipline,
-        disciplineCustom: discipline === 'custom' ? disciplineCustom.trim() : undefined,
+        disciplineCustom:
+          discipline === 'custom' ? disciplineCustom.trim() : undefined,
         season: season.trim(),
-        banner,
+        banner: bannerUrl,
         status,
       });
       toast.success('Сохранено');
     } catch (e) {
       console.error(e);
-      toast.error('Не удалось сохранить');
+      toast.error(e instanceof Error ? e.message : 'Не удалось сохранить');
     } finally {
       setSaving(false);
     }
   }
 
-  function handleDelete() {
-    data.removeChampionship(championship.id);
-    toast.success('Чемпионат удалён');
-    goHome();
+  async function handleDelete() {
+    try {
+      await api.championships.remove(championship.id);
+      toast.success('Чемпионат удалён');
+      goHome();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось удалить');
+    }
   }
 
   return (
@@ -151,7 +161,7 @@ export function SettingsTab({ championship }: Props) {
         destructive
         onConfirm={() => {
           setConfirmDelete(false);
-          handleDelete();
+          void handleDelete();
         }}
         onCancel={() => setConfirmDelete(false)}
       />

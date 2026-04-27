@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { Plus, Calendar, Trash2, Flag, AlertTriangle } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Plus, Calendar, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/components/toast/ToastContext';
-import { useStorage } from '@/hooks/useStorage';
-import { DataKeys } from '@/lib/data';
-import * as data from '@/lib/data';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import * as api from '@/lib/api';
 import { revertStageFromStandings } from '@/lib/standingsCalc';
 import type { Driver, Stage, Standings, Team } from '@/types';
 import { StageWizardModal } from './StageWizardModal';
@@ -18,26 +17,65 @@ interface Props {
 
 export function StagesTab({ championshipId }: Props) {
   const toast = useToast();
-  const [stages] = useStorage<Stage[]>(DataKeys.stages(championshipId), true, []);
-  const [drivers] = useStorage<Driver[]>(DataKeys.drivers(championshipId), true, []);
-  const [teams] = useStorage<Team[]>(DataKeys.teams(championshipId), true, []);
-  const [standings] = useStorage<Standings | null>(
-    DataKeys.standings(championshipId),
-    true,
-    null,
+
+  const childFilter = `championship_id=eq.${championshipId}`;
+
+  const stagesFetcher = useCallback(
+    () => api.stages.list(championshipId),
+    [championshipId],
   );
+  const driversFetcher = useCallback(
+    () => api.drivers.list(championshipId),
+    [championshipId],
+  );
+  const teamsFetcher = useCallback(
+    () => api.teams.list(championshipId),
+    [championshipId],
+  );
+  const standingsFetcher = useCallback(
+    () => api.standings.get(championshipId),
+    [championshipId],
+  );
+  const stagesQ = useSupabaseQuery<Stage[]>(
+    stagesFetcher,
+    [{ table: 'stages', filter: childFilter }],
+    [championshipId],
+  );
+  const driversQ = useSupabaseQuery<Driver[]>(
+    driversFetcher,
+    [{ table: 'drivers', filter: childFilter }],
+    [championshipId],
+  );
+  const teamsQ = useSupabaseQuery<Team[]>(
+    teamsFetcher,
+    [{ table: 'teams', filter: childFilter }],
+    [championshipId],
+  );
+  const standingsQ = useSupabaseQuery<Standings | null>(
+    standingsFetcher,
+    [{ table: 'standings', filter: childFilter }],
+    [championshipId],
+  );
+  const stages = stagesQ.data ?? [];
+  const drivers = driversQ.data ?? [];
+  const teams = teamsQ.data ?? [];
+  const standings = standingsQ.data ?? null;
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Stage | null>(null);
 
-  function handleDelete(stage: Stage) {
-    if (standings) {
-      const next = revertStageFromStandings(standings, stage.results);
-      data.setStandings(championshipId, next);
+  async function handleDelete(stage: Stage) {
+    try {
+      // Сначала откат standings, потом удаление этапа
+      if (standings) {
+        const next = revertStageFromStandings(standings, stage.results);
+        await api.standings.upsert(next);
+      }
+      await api.stages.remove(stage.id);
+      toast.success(`Этап «${stage.name}» удалён, очки откатились`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось удалить этап');
     }
-    const remaining = stages.filter((s) => s.id !== stage.id);
-    data.setStages(championshipId, remaining);
-    toast.success(`Этап «${stage.name}» удалён, очки откатились`);
   }
 
   if (!standings?.initialized) {
@@ -113,7 +151,7 @@ export function StagesTab({ championshipId }: Props) {
         destructive
         confirmLabel="Удалить"
         onConfirm={() => {
-          if (confirmDelete) handleDelete(confirmDelete);
+          if (confirmDelete) void handleDelete(confirmDelete);
           setConfirmDelete(null);
         }}
         onCancel={() => setConfirmDelete(null)}

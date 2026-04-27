@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { ChevronLeft, Eye, Lock } from 'lucide-react';
 import { Tabs } from '@/components/ui/Tabs';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useRouter } from '@/router';
 import type { ManageTab } from '@/router';
-import { useStorage } from '@/hooks/useStorage';
-import { DataKeys } from '@/lib/data';
-import * as data from '@/lib/data';
+import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import * as api from '@/lib/api';
 import type { Championship } from '@/types';
 
 import { SettingsTab } from '@/features/championship/SettingsTab';
@@ -23,16 +25,30 @@ interface Props {
 
 export function ChampionshipManage({ championshipId, tab }: Props) {
   const { goHome, goPublic, setManageTab } = useRouter();
-  const [championship] = useStorage<Championship | null>(
-    DataKeys.championship(championshipId),
-    true,
-    null,
-  );
-  const [authorized, setAuthorized] = useState(false);
+  const { session, profile } = useAuth();
 
-  useEffect(() => {
-    setAuthorized(data.isOrganizer(championshipId));
-  }, [championshipId]);
+  const fetcher = useCallback(
+    () => api.championships.getById(championshipId),
+    [championshipId],
+  );
+  const { data: championship, loading } = useSupabaseQuery<Championship | null>(
+    fetcher,
+    [{ table: 'championships', filter: `id=eq.${championshipId}` }],
+    [championshipId],
+  );
+
+  const isOwner = !!(session && championship?.ownerId === session.user.id);
+  const isAdmin = !!profile?.is_admin;
+  const authorized = isOwner || isAdmin;
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <Skeleton className="h-12 mb-3" />
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
 
   if (!championship) {
     return (
@@ -54,8 +70,8 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <EmptyState
           icon={<Lock size={36} />}
-          title="Доступ только для организатора"
-          description="Эта страница доступна только с устройства, на котором был создан чемпионат."
+          title="Доступ только для владельца"
+          description="Управлять может только создатель чемпионата или администратор."
           action={
             <div className="flex gap-2">
               <Button variant="secondary" onClick={goHome}>
@@ -70,6 +86,8 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
       </div>
     );
   }
+
+  const moderation = championship.moderationStatus;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
@@ -94,9 +112,36 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
         </Button>
       </div>
 
-      <h1 className="text-3xl sm:text-4xl font-bold tracking-display uppercase mb-4">
+      <h1 className="text-3xl sm:text-4xl font-bold tracking-display uppercase mb-2">
         {championship.title}
       </h1>
+
+      <div className="mb-4 flex items-center gap-2 flex-wrap">
+        {moderation === 'pending' && (
+          <Badge variant="muted">На модерации</Badge>
+        )}
+        {moderation === 'approved' && (
+          <Badge variant="lime">Опубликован</Badge>
+        )}
+        {moderation === 'rejected' && (
+          <Badge variant="muted">Отклонён</Badge>
+        )}
+      </div>
+
+      {moderation === 'pending' && (
+        <div className="mb-4 bg-ink-card border border-ink-border rounded p-3 text-sm text-text-secondary">
+          Чемпионат отправлен модератору. После одобрения он появится на главной странице
+          и будет доступен по ссылке.
+        </div>
+      )}
+      {moderation === 'rejected' && championship.rejectionReason && (
+        <div className="mb-4 bg-danger/10 border border-danger/40 rounded p-3 text-sm">
+          <div className="font-bold text-danger uppercase tracking-badge text-xs mb-1">
+            Чемпионат отклонён
+          </div>
+          <div className="text-text-secondary">{championship.rejectionReason}</div>
+        </div>
+      )}
 
       <Tabs<ManageTab>
         tabs={[
