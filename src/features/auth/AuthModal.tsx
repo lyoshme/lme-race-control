@@ -70,7 +70,7 @@ export function AuthModal({ open, onClose, onSignedIn }: Props) {
       return;
     }
     if (!isSupabaseConfigured) {
-      toast.error('Supabase не настроен — пропиши .env.local');
+      toast.error('Supabase не настроен — проверь .env и перезапусти dev-сервер');
       return;
     }
     try {
@@ -155,7 +155,8 @@ export function AuthModal({ open, onClose, onSignedIn }: Props) {
       {step === 'email' ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-text-secondary">
-            Введите email — мы пришлём 6-значный код для входа. Пароль не нужен.
+            Введите email — придёт 6-значный код для входа. Пароль не нужен. Если
+            письмо не пришло, проверьте папку «Спам».
           </p>
           <Input
             label="Email"
@@ -175,8 +176,8 @@ export function AuthModal({ open, onClose, onSignedIn }: Props) {
         <div className="flex flex-col gap-3">
           <p className="text-sm text-text-secondary">
             Код отправлен на{' '}
-            <span className="font-bold text-text-primary">{email}</span>. Введите его
-            ниже. Письмо может прийти в спам.
+            <span className="font-bold text-text-primary">{email}</span>. Введите
+            6 цифр ниже. Письмо может прийти в спам или промоакции.
           </p>
           <Input
             label="Код из письма"
