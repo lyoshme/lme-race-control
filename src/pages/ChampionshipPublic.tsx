@@ -245,14 +245,14 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
           )}
           {tab === 'drivers' && (
             initialized ? (
-              <DriversTable drivers={drivers} teams={teams} standings={standings} />
+              <DriversTable drivers={drivers} teams={teams} standings={standings} stages={stages} />
             ) : (
               <NotInitializedState organizer={organizer} onManage={() => goManage(championshipId, 'standings')} />
             )
           )}
           {tab === 'teams' && (
             initialized ? (
-              <TeamsTable teams={teams} drivers={drivers} standings={standings} />
+              <TeamsTable teams={teams} drivers={drivers} standings={standings} stages={stages} />
             ) : (
               <NotInitializedState organizer={organizer} onManage={() => goManage(championshipId, 'standings')} />
             )

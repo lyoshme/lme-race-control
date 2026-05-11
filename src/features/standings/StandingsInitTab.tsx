@@ -7,7 +7,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useToast } from '@/components/toast/ToastContext';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
-import type { Driver, Standings, Team } from '@/types';
+import type { Driver, Stage, Standings, Team } from '@/types';
 import { DriversTable } from './DriversTable';
 import { TeamsTable } from './TeamsTable';
 
@@ -30,6 +30,10 @@ export function StandingsInitTab({ championshipId }: Props) {
     () => api.standings.get(championshipId),
     [championshipId],
   );
+  const stagesFetcher = useCallback(
+    () => api.stages.list(championshipId),
+    [championshipId],
+  );
   const teamsQ = useSupabaseQuery<Team[]>(
     teamsFetcher,
     [{ table: 'teams', filter: `championship_id=eq.${championshipId}` }],
@@ -45,9 +49,15 @@ export function StandingsInitTab({ championshipId }: Props) {
     [{ table: 'standings', filter: `championship_id=eq.${championshipId}` }],
     [championshipId],
   );
+  const stagesQ = useSupabaseQuery<Stage[]>(
+    stagesFetcher,
+    [{ table: 'stages', filter: `championship_id=eq.${championshipId}` }],
+    [championshipId],
+  );
   const teams = teamsQ.data ?? [];
   const drivers = driversQ.data ?? [];
   const standings = standingsQ.data ?? null;
+  const stages = stagesQ.data ?? [];
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmReset, setConfirmReset] = useState(false);
@@ -173,13 +183,13 @@ export function StandingsInitTab({ championshipId }: Props) {
             <div className="px-4 py-3 border-b border-ink-border">
               <h3 className="text-sm uppercase tracking-badge font-bold">Пилоты</h3>
             </div>
-            <DriversTable drivers={drivers} teams={teams} standings={standings} />
+            <DriversTable drivers={drivers} teams={teams} standings={standings} stages={stages} />
           </div>
           <div className="bg-ink-card border border-ink-border rounded overflow-hidden">
             <div className="px-4 py-3 border-b border-ink-border">
               <h3 className="text-sm uppercase tracking-badge font-bold">Команды</h3>
             </div>
-            <TeamsTable teams={teams} drivers={drivers} standings={standings} />
+            <TeamsTable teams={teams} drivers={drivers} standings={standings} stages={stages} />
           </div>
         </div>
 

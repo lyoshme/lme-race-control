@@ -1,15 +1,30 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
-import type { Driver, Standings, Team } from '@/types';
+import type { Driver, Stage, Standings, Team } from '@/types';
 
 interface Props {
   teams: Team[];
   drivers: Driver[];
   standings: Standings | null;
+  stages?: Stage[];
 }
 
-export function TeamsTable({ teams, drivers, standings }: Props) {
+export function TeamsTable({ teams, drivers, standings, stages = [] }: Props) {
   const driverMap = new Map(drivers.map((d) => [d.id, d]));
+
+  function avgTeamPosition(teamId: string): number {
+    if (stages.length === 0) return Infinity;
+    const positions: number[] = [];
+    for (const stage of stages) {
+      for (const res of stage.results) {
+        if (res.teamId === teamId) {
+          positions.push(res.position);
+        }
+      }
+    }
+    if (positions.length === 0) return Infinity;
+    return positions.reduce((a, b) => a + b, 0) / positions.length;
+  }
 
   const rows = teams
     .map((t) => {
@@ -17,12 +32,12 @@ export function TeamsTable({ teams, drivers, standings }: Props) {
       const teamDrivers = t.driverIds
         .map((id) => driverMap.get(id))
         .filter((d): d is Driver => !!d);
-      return { team: t, points, drivers: teamDrivers, eligible: standings ? t.id in (standings.teamPoints) : true };
+      return { team: t, points, drivers: teamDrivers, avgPos: avgTeamPosition(t.id), eligible: standings ? t.id in (standings.teamPoints) : true };
     })
     .filter((r) => r.eligible)
     .sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
-      return a.team.name.localeCompare(b.team.name);
+      return a.avgPos - b.avgPos;
     });
 
   if (rows.length === 0) {
@@ -59,8 +74,8 @@ export function TeamsTable({ teams, drivers, standings }: Props) {
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                 className={[
                   'border-t border-ink-border',
-                  idx % 2 === 0 ? 'bg-ink-card' : 'bg-[#151515]',
-                  'hover:bg-[#1E1E1E]',
+                  idx % 2 === 0 ? 'bg-ink-card' : 'bg-ink-elevated',
+                  'hover:bg-ink-surface',
                 ].join(' ')}
               >
                 <td className="px-3 py-3">

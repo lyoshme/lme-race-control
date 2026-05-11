@@ -1,16 +1,28 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { CountryFlag } from '@/components/ui/CountryFlag';
-import type { Driver, Standings, Team } from '@/types';
+import type { Driver, Stage, Standings, Team } from '@/types';
 
 interface Props {
   drivers: Driver[];
   teams: Team[];
   standings: Standings | null;
+  stages?: Stage[];
 }
 
-export function DriversTable({ drivers, teams, standings }: Props) {
+export function DriversTable({ drivers, teams, standings, stages = [] }: Props) {
   const teamMap = new Map(teams.map((t) => [t.id, t]));
+
+  function avgPosition(driverId: string): number {
+    if (stages.length === 0) return Infinity;
+    const positions: number[] = [];
+    for (const stage of stages) {
+      const res = stage.results.find((r) => r.driverId === driverId);
+      if (res) positions.push(res.position);
+    }
+    if (positions.length === 0) return Infinity;
+    return positions.reduce((a, b) => a + b, 0) / positions.length;
+  }
 
   // Только пилоты, попавшие в standings (если standings инициализированы),
   // иначе все пилоты с нулями.
@@ -23,6 +35,7 @@ export function DriversTable({ drivers, teams, standings }: Props) {
         points: row?.points ?? 0,
         wins: row?.wins ?? 0,
         podiums: row?.podiums ?? 0,
+        avgPos: avgPosition(d.id),
         eligible: standings ? !!row : true,
       };
     })
@@ -31,7 +44,7 @@ export function DriversTable({ drivers, teams, standings }: Props) {
       if (b.points !== a.points) return b.points - a.points;
       if (b.wins !== a.wins) return b.wins - a.wins;
       if (b.podiums !== a.podiums) return b.podiums - a.podiums;
-      return a.driver.lastName.localeCompare(b.driver.lastName);
+      return a.avgPos - b.avgPos;
     });
 
   if (rows.length === 0) {
@@ -74,8 +87,8 @@ export function DriversTable({ drivers, teams, standings }: Props) {
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                 className={[
                   'border-t border-ink-border',
-                  idx % 2 === 0 ? 'bg-ink-card' : 'bg-[#151515]',
-                  'hover:bg-[#1E1E1E]',
+                  idx % 2 === 0 ? 'bg-ink-card' : 'bg-ink-elevated',
+                  'hover:bg-ink-surface',
                 ].join(' ')}
               >
                 <td className="px-3 py-3">

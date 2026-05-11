@@ -67,6 +67,7 @@ export default async function handler(request: Request): Promise<Response> {
   <meta name="twitter:description" content="${description}" />
   ${banner ? `<meta name="twitter:image" content="${banner}" />` : ''}
   <link rel="canonical" href="${spaUrl}" />
+  <meta http-equiv="refresh" content="0; url=${spaUrl}" />
   <script>window.location.replace('${spaUrl}');</script>
   <style>
     body { background:#0a0a0a; color:#e5e5e5; font-family:system-ui,sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
