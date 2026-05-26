@@ -48,7 +48,11 @@ export function revertStageFromStandings(
 }
 
 function applyRow(s: Standings, r: StageResultRow, sign: 1 | -1): void {
-  const row = s.driverPoints[r.driverId];
+  let row = s.driverPoints[r.driverId];
+  if (!row && sign === 1) {
+    row = { points: 0, wins: 0, podiums: 0 };
+    s.driverPoints[r.driverId] = row;
+  }
   if (row) {
     row.points = Math.max(0, row.points + sign * r.points);
     if (r.position === 1) {

@@ -36,7 +36,9 @@ export function DriversTable({ drivers, teams, standings, stages = [] }: Props) 
         wins: row?.wins ?? 0,
         podiums: row?.podiums ?? 0,
         avgPos: avgPosition(d.id),
-        eligible: standings ? !!row : true,
+        eligible: standings
+          ? !!row || (!!d.teamId && standings.selectedTeamIds.includes(d.teamId))
+          : true,
       };
     })
     .filter((r) => r.eligible)

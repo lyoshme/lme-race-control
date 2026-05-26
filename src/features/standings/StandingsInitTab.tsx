@@ -155,6 +155,12 @@ export function StandingsInitTab({ championshipId }: Props) {
   }
 
   if (standings?.initialized) {
+    const eligibleDriversCount = drivers.filter(
+      (d) =>
+        d.id in standings.driverPoints ||
+        (d.teamId && standings.selectedTeamIds.includes(d.teamId)),
+    ).length;
+
     return (
       <div className="flex flex-col gap-6">
         <div className="bg-ink-card border border-ink-border rounded p-5 flex items-start gap-3">
@@ -165,7 +171,7 @@ export function StandingsInitTab({ championshipId }: Props) {
             </h3>
             <p className="text-sm text-text-secondary">
               Чемпионат опубликован: команд — {standings.selectedTeamIds.length}, пилотов —{' '}
-              {Object.keys(standings.driverPoints).length}. Этапы будут добавлять очки
+              {eligibleDriversCount}. Этапы будут добавлять очки
               автоматически.
             </p>
           </div>
