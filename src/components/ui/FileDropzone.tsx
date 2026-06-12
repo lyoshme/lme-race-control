@@ -14,6 +14,7 @@ interface Props {
   maxKB?: number;
   maxDim?: number;
   className?: string;
+  disabled?: boolean;
 }
 
 const aspectClass = {
@@ -37,6 +38,7 @@ export function FileDropzone({
   maxKB = 500,
   maxDim = 1600,
   className = '',
+  disabled = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
@@ -45,6 +47,7 @@ export function FileDropzone({
   const toast = useToast();
 
   async function handleFile(file: File) {
+    if (disabled) return;
     if (!file.type.startsWith('image/')) {
       toast.error('Поддерживаются только изображения');
       return;
@@ -64,6 +67,7 @@ export function FileDropzone({
   }
 
   async function handleCropConfirm(cropped: string) {
+    if (disabled) return;
     setBusy(true);
     try {
       const compressed = await compressDataUrl(cropped, { maxKB, maxDim });
@@ -79,6 +83,7 @@ export function FileDropzone({
 
   function onDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
+    if (disabled) return;
     setDrag(false);
     const file = e.dataTransfer.files?.[0];
     if (file) void handleFile(file);
@@ -90,49 +95,54 @@ export function FileDropzone({
         <span className="text-xs uppercase tracking-badge text-text-secondary">{label}</span>
       )}
       <div
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !disabled && inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
-          setDrag(true);
+          if (!disabled) setDrag(true);
         }}
         onDragLeave={() => setDrag(false)}
         onDrop={onDrop}
         className={[
-          'relative cursor-pointer rounded border border-dashed flex items-center justify-center overflow-hidden transition',
+          'relative rounded border flex items-center justify-center overflow-hidden transition',
           aspectClass[aspect],
-          drag ? 'border-lime-primary bg-lime-primary/10' : 'border-ink-border hover:border-lime-primary',
-          value ? 'border-solid' : '',
+          disabled
+            ? 'border-ink-border bg-ink-deep/20 cursor-not-allowed opacity-60'
+            : 'cursor-pointer border-dashed border-ink-border hover:border-lime-primary',
+          drag ? 'border-lime-primary bg-lime-primary/10' : '',
+          value && !disabled ? 'border-solid' : '',
         ].join(' ')}
       >
         {value ? (
           <>
             <img src={value} alt="" className="w-full h-full object-cover" />
-            <div className="absolute top-2 right-2 flex gap-1">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCropSrc(value);
-                }}
-                className="p-1.5 rounded bg-black/70 hover:bg-lime-primary hover:text-ink-deep text-white transition"
-                aria-label="Обрезать"
-                title="Обрезать"
-              >
-                <CropIcon size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChange('');
-                }}
-                className="p-1.5 rounded bg-black/70 hover:bg-danger text-white transition"
-                aria-label="Удалить"
-                title="Удалить"
-              >
-                <X size={14} />
-              </button>
-            </div>
+            {!disabled && (
+              <div className="absolute top-2 right-2 flex gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCropSrc(value);
+                  }}
+                  className="p-1.5 rounded bg-black/70 hover:bg-lime-primary hover:text-ink-deep text-white transition"
+                  aria-label="Обрезать"
+                  title="Обрезать"
+                >
+                  <CropIcon size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange('');
+                  }}
+                  className="p-1.5 rounded bg-black/70 hover:bg-danger text-white transition"
+                  aria-label="Удалить"
+                  title="Удалить"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center gap-2 text-text-secondary">
@@ -142,7 +152,7 @@ export function FileDropzone({
               <Upload size={28} />
             )}
             <span className="text-xs uppercase tracking-badge">
-              {busy ? 'Обработка…' : 'Перетащите или нажмите'}
+              {busy ? 'Обработка…' : disabled ? 'Изображение отсутствует' : 'Перетащите или нажмите'}
             </span>
           </div>
         )}

@@ -12,9 +12,13 @@ import type { ScoringSystem } from '@/types';
 
 interface Props {
   championshipId: string;
+  permissions: {
+    canManageScoring: boolean;
+    isOwner: boolean;
+  };
 }
 
-export function ScoringTab({ championshipId }: Props) {
+export function ScoringTab({ championshipId, permissions }: Props) {
   const toast = useToast();
   const fetcher = useCallback(
     () => api.scoring.list(championshipId),
@@ -35,6 +39,8 @@ export function ScoringTab({ championshipId }: Props) {
   const [bonusFastestLap, setBonusFastestLap] = useState('0');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const disabled = !permissions.canManageScoring;
+
   useEffect(() => {
     if (!activeId && systems.length > 0) setActiveId(systems[0].id);
     if (activeId && !systems.find((s) => s.id === activeId)) {
@@ -54,16 +60,20 @@ export function ScoringTab({ championshipId }: Props) {
   }, [activeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function addRow() {
+    if (disabled) return;
     setPoints((p) => [...p, '0']);
   }
   function removeRow(idx: number) {
+    if (disabled) return;
     setPoints((p) => p.filter((_, i) => i !== idx));
   }
   function setPointAt(idx: number, value: string) {
+    if (disabled) return;
     setPoints((p) => p.map((v, i) => (i === idx ? value.replace(/[^0-9.-]/g, '') : v)));
   }
 
   function applyPreset(presetKey: string) {
+    if (disabled) return;
     const preset = SCORING_PRESETS.find((p) => p.key === presetKey);
     if (!preset) return;
     setName(preset.label);
@@ -74,6 +84,7 @@ export function ScoringTab({ championshipId }: Props) {
   }
 
   async function createNew() {
+    if (disabled) return;
     try {
       const created = await api.scoring.create({
         championshipId,
@@ -89,6 +100,7 @@ export function ScoringTab({ championshipId }: Props) {
   }
 
   async function createFromPreset(presetKey: string) {
+    if (disabled) return;
     const preset = SCORING_PRESETS.find((p) => p.key === presetKey);
     if (!preset) return;
     try {
@@ -108,7 +120,7 @@ export function ScoringTab({ championshipId }: Props) {
   }
 
   async function save() {
-    if (!active) return;
+    if (disabled || !active) return;
     if (!name.trim()) {
       toast.error('Введите название системы');
       return;
@@ -128,7 +140,7 @@ export function ScoringTab({ championshipId }: Props) {
   }
 
   async function deleteActive() {
-    if (!active) return;
+    if (disabled || !active) return;
     try {
       await api.scoring.remove(active.id);
       toast.success('Система удалена');
@@ -143,23 +155,25 @@ export function ScoringTab({ championshipId }: Props) {
         <h2 className="text-xl font-bold tracking-section uppercase">Система очков</h2>
         <EmptyState
           icon={<Sparkles size={36} />}
-          title="Создайте первую систему очков"
-          description="Можно начать с пресета или создать свою с нуля. Систем может быть несколько — например, отдельная для гонки и для спринта."
+          title={disabled ? "Система очков не настроена" : "Создайте первую систему очков"}
+          description={disabled ? "Владелец чемпионата ещё не создал ни одной системы очков доступа." : "Можно начать с пресета или создать свою с нуля. Систем может быть несколько — например, отдельная для гонки и для спринта."}
           action={
-            <div className="flex gap-2 flex-wrap justify-center">
-              {SCORING_PRESETS.map((p) => (
-                <Button
-                  key={p.key}
-                  variant="secondary"
-                  onClick={() => createFromPreset(p.key)}
-                >
-                  {p.label}
+            !disabled ? (
+              <div className="flex gap-2 flex-wrap justify-center">
+                {SCORING_PRESETS.map((p) => (
+                  <Button
+                    key={p.key}
+                    variant="secondary"
+                    onClick={() => createFromPreset(p.key)}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+                <Button icon={<Plus size={16} />} onClick={createNew}>
+                  Создать свою
                 </Button>
-              ))}
-              <Button icon={<Plus size={16} />} onClick={createNew}>
-                Создать свою
-              </Button>
-            </div>
+              </div>
+            ) : undefined
           }
         />
       </div>
@@ -171,9 +185,11 @@ export function ScoringTab({ championshipId }: Props) {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base uppercase tracking-section font-bold">Системы</h2>
-          <Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={createNew}>
-            Новая
-          </Button>
+          {!disabled && (
+            <Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={createNew}>
+              Новая
+            </Button>
+          )}
         </div>
         <div className="bg-ink-card border border-ink-border rounded overflow-hidden">
           {systems.map((s) => (
@@ -190,16 +206,18 @@ export function ScoringTab({ championshipId }: Props) {
             </button>
           ))}
         </div>
-        <div className="flex flex-col gap-2 pt-2">
-          <span className="text-[11px] uppercase tracking-badge text-text-secondary">Пресеты</span>
-          <div className="flex flex-wrap gap-2">
-            {SCORING_PRESETS.map((p) => (
-              <Button key={p.key} variant="ghost" size="sm" onClick={() => createFromPreset(p.key)}>
-                + {p.label}
-              </Button>
-            ))}
+        {!disabled && (
+          <div className="flex flex-col gap-2 pt-2">
+            <span className="text-[11px] uppercase tracking-badge text-text-secondary">Пресеты</span>
+            <div className="flex flex-wrap gap-2">
+              {SCORING_PRESETS.map((p) => (
+                <Button key={p.key} variant="ghost" size="sm" onClick={() => createFromPreset(p.key)}>
+                  + {p.label}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {active && (
@@ -211,17 +229,22 @@ export function ScoringTab({ championshipId }: Props) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={40}
+                disabled={disabled}
               />
             </div>
-            <Button variant="secondary" size="sm" onClick={() => applyPreset('f1')}>
-              F1
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => applyPreset('sprint')}>
-              Sprint
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => applyPreset('custom')}>
-              Custom
-            </Button>
+            {!disabled && (
+              <>
+                <Button variant="secondary" size="sm" onClick={() => applyPreset('f1')}>
+                  F1
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => applyPreset('sprint')}>
+                  Sprint
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => applyPreset('custom')}>
+                  Custom
+                </Button>
+              </>
+            )}
           </div>
 
           <div>
@@ -237,22 +260,27 @@ export function ScoringTab({ championshipId }: Props) {
                     onChange={(e) => setPointAt(idx, e.target.value)}
                     inputMode="numeric"
                     className="flex-1 bg-transparent px-2 py-2 text-sm tabular focus:outline-none"
+                    disabled={disabled}
                   />
-                  <button
-                    onClick={() => removeRow(idx)}
-                    className="px-2 text-text-muted hover:text-danger transition"
-                    aria-label="Удалить строку"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {!disabled && (
+                    <button
+                      onClick={() => removeRow(idx)}
+                      className="px-2 text-text-muted hover:text-danger transition"
+                      aria-label="Удалить строку"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               ))}
-              <button
-                onClick={addRow}
-                className="border border-dashed border-ink-border rounded px-3 py-2 text-xs uppercase tracking-badge text-text-secondary hover:border-lime-primary hover:text-lime-primary transition flex items-center justify-center gap-2"
-              >
-                <Plus size={14} /> Место
-              </button>
+              {!disabled && (
+                <button
+                  onClick={addRow}
+                  className="border border-dashed border-ink-border rounded px-3 py-2 text-xs uppercase tracking-badge text-text-secondary hover:border-lime-primary hover:text-lime-primary transition flex items-center justify-center gap-2"
+                >
+                  <Plus size={14} /> Место
+                </button>
+              )}
             </div>
           </div>
 
@@ -265,6 +293,7 @@ export function ScoringTab({ championshipId }: Props) {
                 onChange={(e) => setBonusPole(e.target.value.replace(/[^0-9]/g, ''))}
                 inputMode="numeric"
                 className="tabular"
+                disabled={disabled}
               />
               <Input
                 label="Быстрый круг"
@@ -272,22 +301,25 @@ export function ScoringTab({ championshipId }: Props) {
                 onChange={(e) => setBonusFastestLap(e.target.value.replace(/[^0-9]/g, ''))}
                 inputMode="numeric"
                 className="tabular"
+                disabled={disabled}
               />
             </div>
           </div>
 
-          <div className="flex justify-between items-center pt-2 border-t border-ink-border">
-            <Button
-              variant="danger"
-              icon={<Trash2 size={16} />}
-              onClick={() => setConfirmDelete(true)}
-            >
-              Удалить
-            </Button>
-            <Button icon={<Save size={16} />} onClick={save}>
-              Сохранить
-            </Button>
-          </div>
+          {!disabled && (
+            <div className="flex justify-between items-center pt-2 border-t border-ink-border">
+              <Button
+                variant="danger"
+                icon={<Trash2 size={16} />}
+                onClick={() => setConfirmDelete(true)}
+              >
+                Удалить
+              </Button>
+              <Button icon={<Save size={16} />} onClick={save}>
+                Сохранить
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ChevronLeft, Eye, Lock } from 'lucide-react';
 import { Tabs } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
@@ -10,13 +10,14 @@ import type { ManageTab } from '@/router';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
-import type { Championship } from '@/types';
+import type { Championship, ChampionshipEditor } from '@/types';
 
 import { SettingsTab } from '@/features/championship/SettingsTab';
 import { TeamsTab } from '@/features/teams/TeamsTab';
 import { ScoringTab } from '@/features/scoring/ScoringTab';
 import { StandingsInitTab } from '@/features/standings/StandingsInitTab';
 import { StagesTab } from '@/features/stages/StagesTab';
+import { EditorsTab } from '@/features/championship/EditorsTab';
 
 interface Props {
   championshipId: string;
@@ -37,11 +38,67 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
     [championshipId],
   );
 
+  const editorRecordFetcher = useCallback(
+    () =>
+      session?.user.id
+        ? api.editors.getEditorRecord(championshipId, session.user.id)
+        : Promise.resolve<ChampionshipEditor | null>(null),
+    [championshipId, session?.user.id],
+  );
+  const { data: editorRecord, loading: editorLoading } = useSupabaseQuery<ChampionshipEditor | null>(
+    editorRecordFetcher,
+    [{ table: 'championship_editors', filter: `championship_id=eq.${championshipId}` }],
+    [championshipId, session?.user.id],
+  );
+
   const isOwner = !!(session && championship?.ownerId === session.user.id);
   const isAdmin = !!profile?.is_admin;
-  const authorized = isOwner || isAdmin;
+  const isEditor = !!editorRecord;
+  const authorized = isOwner || isAdmin || isEditor;
 
-  if (loading) {
+  const permissions = useMemo(() => {
+    if (isOwner || isAdmin) {
+      return {
+        canManageSettings: true,
+        canManageTeams: true,
+        canManageScoring: true,
+        canManageStages: true,
+        isOwner: true,
+      };
+    }
+    if (editorRecord) {
+      return {
+        canManageSettings: editorRecord.canManageSettings,
+        canManageTeams: editorRecord.canManageTeams,
+        canManageScoring: editorRecord.canManageScoring,
+        canManageStages: editorRecord.canManageStages,
+        isOwner: false,
+      };
+    }
+    return {
+      canManageSettings: false,
+      canManageTeams: false,
+      canManageScoring: false,
+      canManageStages: false,
+      isOwner: false,
+    };
+  }, [isOwner, isAdmin, editorRecord]);
+
+  const tabs = useMemo(() => {
+    const base = [
+      { key: 'settings', label: 'Настройки' },
+      { key: 'teams', label: 'Команды и пилоты' },
+      { key: 'scoring', label: 'Система очков' },
+      { key: 'standings', label: 'Таблицы' },
+      { key: 'stages', label: 'Этапы' },
+    ];
+    if (isOwner || isAdmin) {
+      base.push({ key: 'editors', label: 'Редакторы' });
+    }
+    return base;
+  }, [isOwner, isAdmin]);
+
+  if (loading || editorLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <Skeleton className="h-12 mb-3" />
@@ -144,23 +201,18 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
       )}
 
       <Tabs<ManageTab>
-        tabs={[
-          { key: 'settings', label: 'Настройки' },
-          { key: 'teams', label: 'Команды и пилоты' },
-          { key: 'scoring', label: 'Система очков' },
-          { key: 'standings', label: 'Таблицы' },
-          { key: 'stages', label: 'Этапы' },
-        ]}
+        tabs={tabs as any}
         active={tab}
         onChange={setManageTab}
       />
 
       <div className="py-6">
-        {tab === 'settings' && <SettingsTab championship={championship} />}
-        {tab === 'teams' && <TeamsTab championshipId={championshipId} />}
-        {tab === 'scoring' && <ScoringTab championshipId={championshipId} />}
-        {tab === 'standings' && <StandingsInitTab championshipId={championshipId} />}
-        {tab === 'stages' && <StagesTab championshipId={championshipId} />}
+        {tab === 'settings' && <SettingsTab championship={championship} permissions={permissions} />}
+        {tab === 'teams' && <TeamsTab championshipId={championshipId} permissions={permissions} />}
+        {tab === 'scoring' && <ScoringTab championshipId={championshipId} permissions={permissions} />}
+        {tab === 'standings' && <StandingsInitTab championshipId={championshipId} permissions={permissions} />}
+        {tab === 'stages' && <StagesTab championshipId={championshipId} permissions={permissions} />}
+        {tab === 'editors' && (isOwner || isAdmin) && <EditorsTab championshipId={championshipId} />}
       </div>
     </div>
   );

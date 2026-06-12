@@ -100,6 +100,37 @@ export interface Stage {
   createdAt: number;
 }
 
+export interface ChampionshipEditor {
+  id: string;
+  championshipId: string;
+  userId: string;
+  canManageSettings: boolean;
+  canManageTeams: boolean;
+  canManageScoring: boolean;
+  canManageStages: boolean;
+  createdAt: number;
+  userEmail?: string;
+  userDisplayName?: string;
+}
+
+export interface ChampionshipInvite {
+  id: string;
+  championshipId: string;
+  canManageSettings: boolean;
+  canManageTeams: boolean;
+  canManageScoring: boolean;
+  canManageStages: boolean;
+  createdAt: number;
+}
+
+export interface EditorPermissions {
+  canManageSettings: boolean;
+  canManageTeams: boolean;
+  canManageScoring: boolean;
+  canManageStages: boolean;
+  isOwner: boolean;
+}
+
 export interface OrganizerTokensMap {
   [championshipId: string]: string;
 }

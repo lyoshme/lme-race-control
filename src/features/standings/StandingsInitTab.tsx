@@ -8,14 +8,17 @@ import { useToast } from '@/components/toast/ToastContext';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
 import type { Driver, Stage, Standings, Team } from '@/types';
+import type { EditorPermissions } from '@/types';
 import { DriversTable } from './DriversTable';
 import { TeamsTable } from './TeamsTable';
 
 interface Props {
   championshipId: string;
+  permissions?: EditorPermissions;
 }
 
-export function StandingsInitTab({ championshipId }: Props) {
+export function StandingsInitTab({ championshipId, permissions }: Props) {
+  const canWrite = permissions?.canManageStages ?? true;
   const toast = useToast();
 
   const teamsFetcher = useCallback(
@@ -175,13 +178,15 @@ export function StandingsInitTab({ championshipId }: Props) {
               автоматически.
             </p>
           </div>
-          <Button
-            variant="danger"
-            icon={<RotateCcw size={16} />}
-            onClick={() => setConfirmReset(true)}
-          >
-            Сбросить
-          </Button>
+          {canWrite && (
+            <Button
+              variant="danger"
+              icon={<RotateCcw size={16} />}
+              onClick={() => setConfirmReset(true)}
+            >
+              Сбросить
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -231,14 +236,16 @@ export function StandingsInitTab({ championshipId }: Props) {
         <h3 className="text-base uppercase tracking-section font-bold">
           Команды-участники ({selected.size}/{teams.length})
         </h3>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={selectAll}>
-            Все
-          </Button>
-          <Button variant="ghost" size="sm" onClick={selectNone}>
-            Снять
-          </Button>
-        </div>
+        {canWrite && (
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={selectAll}>
+              Все
+            </Button>
+            <Button variant="ghost" size="sm" onClick={selectNone}>
+              Снять
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -248,7 +255,8 @@ export function StandingsInitTab({ championshipId }: Props) {
           return (
             <button
               key={t.id}
-              onClick={() => toggle(t.id)}
+              onClick={() => canWrite && toggle(t.id)}
+              disabled={!canWrite}
               className={[
                 'flex items-center gap-3 p-3 border rounded transition text-left',
                 isSelected
@@ -282,15 +290,17 @@ export function StandingsInitTab({ championshipId }: Props) {
         })}
       </div>
 
-      <div className="flex justify-end pt-2">
-        <Button
-          icon={<Check size={16} />}
-          onClick={initialize}
-          disabled={selected.size === 0}
-        >
-          Инициализировать чемпионат
-        </Button>
-      </div>
+      {canWrite && (
+        <div className="flex justify-end pt-2">
+          <Button
+            icon={<Check size={16} />}
+            onClick={initialize}
+            disabled={selected.size === 0}
+          >
+            Инициализировать чемпионат
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

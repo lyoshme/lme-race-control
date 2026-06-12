@@ -45,6 +45,19 @@ export function Account() {
     [session?.user.id],
   );
 
+  const editedFetcher = useCallback(
+    () =>
+      session?.user.id
+        ? api.championships.listEdited(session.user.id)
+        : Promise.resolve<Championship[]>([]),
+    [session?.user.id],
+  );
+  const { data: editedChampionships, loading: editedLoading } = useSupabaseQuery<Championship[]>(
+    editedFetcher,
+    [{ table: 'championship_editors' }],
+    [session?.user.id],
+  );
+
   if (initializing) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
@@ -162,6 +175,31 @@ export function Account() {
           {myChampionships.map((c) => (
             <ChampCard key={c.id} championship={c} onManage={() => goManage(c.id)} onPublic={() => goPublic(c.id)} />
           ))}
+        </div>
+      )}
+
+      {/* Edited Championships */}
+      {editedChampionships && editedChampionships.length > 0 && (
+        <div className="mt-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold tracking-section uppercase">Управление (как редактор)</h2>
+          </div>
+          {editedLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Skeleton className="h-32" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {editedChampionships.map((c) => (
+                <ChampCard
+                  key={c.id}
+                  championship={c}
+                  onManage={() => goManage(c.id)}
+                  onPublic={() => goPublic(c.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

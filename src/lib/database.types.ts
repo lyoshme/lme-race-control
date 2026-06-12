@@ -95,6 +95,27 @@ export interface StageRow {
   created_at: string;
 }
 
+export interface ChampionshipEditorRow {
+  id: string;
+  championship_id: string;
+  user_id: string;
+  can_manage_settings: boolean;
+  can_manage_teams: boolean;
+  can_manage_scoring: boolean;
+  can_manage_stages: boolean;
+  created_at: string;
+}
+
+export interface ChampionshipInviteRow {
+  id: string;
+  championship_id: string;
+  can_manage_settings: boolean;
+  can_manage_teams: boolean;
+  can_manage_scoring: boolean;
+  can_manage_stages: boolean;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -141,6 +162,16 @@ export interface Database {
           stage_date: string;
         };
         Update: Partial<StageRow>;
+      };
+      championship_editors: {
+        Row: ChampionshipEditorRow;
+        Insert: Partial<ChampionshipEditorRow> & { championship_id: string; user_id: string };
+        Update: Partial<ChampionshipEditorRow>;
+      };
+      championship_invites: {
+        Row: ChampionshipInviteRow;
+        Insert: Partial<ChampionshipInviteRow> & { championship_id: string };
+        Update: Partial<ChampionshipInviteRow>;
       };
     };
   };

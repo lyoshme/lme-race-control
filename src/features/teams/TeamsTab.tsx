@@ -30,9 +30,13 @@ const ORPHANS_ID = '__orphans__';
 
 interface Props {
   championshipId: string;
+  permissions: {
+    canManageTeams: boolean;
+    isOwner: boolean;
+  };
 }
 
-export function TeamsTab({ championshipId }: Props) {
+export function TeamsTab({ championshipId, permissions }: Props) {
   const toast = useToast();
 
   const teamsFetcher = useCallback(
@@ -101,6 +105,7 @@ export function TeamsTab({ championshipId }: Props) {
   }
   function onDragEnd(e: DragEndEvent) {
     setActiveDriverId(null);
+    if (!permissions.canManageTeams) return;
     if (!e.over) return;
     const overId = String(e.over.id);
     const targetTeamId = overId === ORPHANS_ID ? null : overId;
@@ -175,19 +180,21 @@ export function TeamsTab({ championshipId }: Props) {
             <span className="tabular text-text-primary">{drivers.length}</span>
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            icon={<UserPlus size={16} />}
-            onClick={() => openDriverModal(null, null)}
-            disabled={teams.length === 0}
-          >
-            Пилот
-          </Button>
-          <Button icon={<Plus size={16} />} onClick={() => openTeamModal(null)}>
-            Команда
-          </Button>
-        </div>
+        {permissions.canManageTeams && (
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              icon={<UserPlus size={16} />}
+              onClick={() => openDriverModal(null, null)}
+              disabled={teams.length === 0}
+            >
+              Пилот
+            </Button>
+            <Button icon={<Plus size={16} />} onClick={() => openTeamModal(null)}>
+              Команда
+            </Button>
+          </div>
+        )}
       </div>
 
       {teams.length === 0 ? (
@@ -196,9 +203,11 @@ export function TeamsTab({ championshipId }: Props) {
           title="Нет команд"
           description="Добавьте первую команду, чтобы начать формировать состав чемпионата."
           action={
-            <Button icon={<Plus size={16} />} onClick={() => openTeamModal(null)}>
-              Создать команду
-            </Button>
+            permissions.canManageTeams ? (
+              <Button icon={<Plus size={16} />} onClick={() => openTeamModal(null)}>
+                Создать команду
+              </Button>
+            ) : undefined
           }
         />
       ) : (
@@ -209,13 +218,15 @@ export function TeamsTab({ championshipId }: Props) {
           onDragEnd={onDragEnd}
           onDragCancel={onDragCancel}
         >
-          <div className="bg-ink-card border border-ink-border rounded p-3 flex items-start gap-2 text-xs text-text-secondary">
-            <GripVertical size={14} className="shrink-0 mt-0.5 text-lime-primary" />
-            <span>
-              Перетаскивайте пилотов между командами или в зону «Без команды».
-              Кнопки редактирования и удаления работают как раньше.
-            </span>
-          </div>
+          {permissions.canManageTeams && (
+            <div className="bg-ink-card border border-ink-border rounded p-3 flex items-start gap-2 text-xs text-text-secondary">
+              <GripVertical size={14} className="shrink-0 mt-0.5 text-lime-primary" />
+              <span>
+                Перетаскивайте пилотов между командами или в зону «Без команды».
+                Кнопки редактирования и удаления работают как раньше.
+              </span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {teams.map((team) => (
@@ -224,6 +235,7 @@ export function TeamsTab({ championshipId }: Props) {
                 team={team}
                 drivers={driversByTeam.get(team.id) ?? []}
                 draggingDriverId={activeDriverId}
+                canManage={permissions.canManageTeams}
                 onAddDriver={() => openDriverModal(null, team.id)}
                 onEditTeam={() => openTeamModal(team)}
                 onDeleteTeam={() => setConfirmDeleteTeam(team)}
@@ -236,6 +248,7 @@ export function TeamsTab({ championshipId }: Props) {
           <DroppableOrphansZone
             drivers={orphans}
             draggingDriverId={activeDriverId}
+            canManage={permissions.canManageTeams}
             onEditDriver={(d) => openDriverModal(d)}
             onDeleteDriver={(d) => setConfirmDeleteDriver(d)}
           />
@@ -311,6 +324,7 @@ function DroppableTeamCard({
   team,
   drivers,
   draggingDriverId,
+  canManage,
   onAddDriver,
   onEditTeam,
   onDeleteTeam,
@@ -320,6 +334,7 @@ function DroppableTeamCard({
   team: Team;
   drivers: Driver[];
   draggingDriverId: string | null;
+  canManage: boolean;
   onAddDriver: () => void;
   onEditTeam: () => void;
   onDeleteTeam: () => void;
@@ -355,55 +370,62 @@ function DroppableTeamCard({
             {drivers.length} пилот{declension(drivers.length)}
           </span>
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<UserPlus size={14} />}
-            onClick={onAddDriver}
-            aria-label="Добавить пилота"
-          >
-            <span className="sr-only">Добавить пилота</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Pencil size={14} />}
-            onClick={onEditTeam}
-            aria-label="Редактировать"
-          >
-            <span className="sr-only">Редактировать</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Trash2 size={14} />}
-            onClick={onDeleteTeam}
-            aria-label="Удалить"
-          >
-            <span className="sr-only">Удалить</span>
-          </Button>
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<UserPlus size={14} />}
+              onClick={onAddDriver}
+              aria-label="Добавить пилота"
+            >
+              <span className="sr-only">Добавить пилота</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Pencil size={14} />}
+              onClick={onEditTeam}
+              aria-label="Редактировать"
+            >
+              <span className="sr-only">Редактировать</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Trash2 size={14} />}
+              onClick={onDeleteTeam}
+              aria-label="Удалить"
+            >
+              <span className="sr-only">Удалить</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="p-3 flex flex-col gap-1 min-h-[80px]">
         {drivers.length === 0 ? (
-          <button
-            onClick={onAddDriver}
-            className={[
-              'border border-dashed rounded p-3 text-xs uppercase tracking-badge transition flex items-center justify-center gap-2',
-              showHighlight
-                ? 'border-lime-primary text-lime-primary bg-lime-primary/5'
-                : 'border-ink-border text-text-secondary hover:border-lime-primary hover:text-lime-primary',
-            ].join(' ')}
-          >
-            <Plus size={14} /> {showHighlight ? 'Перетащите сюда' : 'Добавить пилота'}
-          </button>
+          canManage ? (
+            <button
+              onClick={onAddDriver}
+              className={[
+                'border border-dashed rounded p-3 text-xs uppercase tracking-badge transition flex items-center justify-center gap-2',
+                showHighlight
+                  ? 'border-lime-primary text-lime-primary bg-lime-primary/5'
+                  : 'border-ink-border text-text-secondary hover:border-lime-primary hover:text-lime-primary',
+              ].join(' ')}
+            >
+              <Plus size={14} /> {showHighlight ? 'Перетащите сюда' : 'Добавить пилота'}
+            </button>
+          ) : (
+            <div className="text-xs text-text-muted text-center py-4">Пилотов нет</div>
+          )
         ) : (
           drivers.map((d) => (
             <DraggableDriverRow
               key={d.id}
               driver={d}
+              canManage={canManage}
               onEdit={() => onEditDriver(d)}
               onDelete={() => onDeleteDriver(d)}
             />
@@ -417,11 +439,13 @@ function DroppableTeamCard({
 function DroppableOrphansZone({
   drivers,
   draggingDriverId,
+  canManage,
   onEditDriver,
   onDeleteDriver,
 }: {
   drivers: Driver[];
   draggingDriverId: string | null;
+  canManage: boolean;
   onEditDriver: (d: Driver) => void;
   onDeleteDriver: (d: Driver) => void;
 }) {
@@ -459,6 +483,7 @@ function DroppableOrphansZone({
           <DraggableDriverRow
             key={d.id}
             driver={d}
+            canManage={canManage}
             onEdit={() => onEditDriver(d)}
             onDelete={() => onDeleteDriver(d)}
           />
@@ -472,33 +497,38 @@ function DroppableOrphansZone({
 
 function DraggableDriverRow({
   driver,
+  canManage,
   onEdit,
   onDelete,
 }: {
   driver: Driver;
+  canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: driver.id,
+    disabled: !canManage,
   });
 
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
+      {...(canManage ? attributes : {})}
       style={{ opacity: isDragging ? 0.4 : 1 }}
       className="flex items-center gap-2 px-2 py-2 rounded hover:bg-ink-elevated transition group"
     >
-      <button
-        {...listeners}
-        type="button"
-        className="p-1 -ml-1 text-text-muted hover:text-lime-primary transition cursor-grab active:cursor-grabbing touch-none"
-        aria-label="Перетащить пилота"
-        title="Перетащить"
-      >
-        <GripVertical size={14} />
-      </button>
+      {canManage && (
+        <button
+          {...listeners}
+          type="button"
+          className="p-1 -ml-1 text-text-muted hover:text-lime-primary transition cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Перетащить пилота"
+          title="Перетащить"
+        >
+          <GripVertical size={14} />
+        </button>
+      )}
       <Avatar src={driver.photo} name={`${driver.firstName} ${driver.lastName}`} size={36} />
       <div className="min-w-0 flex-1">
         <div className="text-sm font-bold flex items-center gap-1.5">
@@ -509,22 +539,24 @@ function DraggableDriverRow({
           # <span className="tabular">{driver.number}</span>
         </div>
       </div>
-      <div className="opacity-0 group-hover:opacity-100 transition flex gap-1">
-        <button
-          onClick={onEdit}
-          className="p-1.5 text-text-secondary hover:text-lime-primary transition"
-          aria-label="Редактировать"
-        >
-          <Pencil size={14} />
-        </button>
-        <button
-          onClick={onDelete}
-          className="p-1.5 text-text-secondary hover:text-danger transition"
-          aria-label="Удалить"
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
+      {canManage && (
+        <div className="opacity-0 group-hover:opacity-100 transition flex gap-1">
+          <button
+            onClick={onEdit}
+            className="p-1.5 text-text-secondary hover:text-lime-primary transition"
+            aria-label="Редактировать"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 text-text-secondary hover:text-danger transition"
+            aria-label="Удалить"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

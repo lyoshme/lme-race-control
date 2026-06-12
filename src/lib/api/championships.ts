@@ -109,3 +109,16 @@ export async function reject(id: string, reason: string): Promise<Championship> 
   if (error) throw error;
   return rowToChampionship(data);
 }
+
+/** Список чемпионатов, где текущий пользователь является со-редактором. */
+export async function listEdited(userId: string): Promise<Championship[]> {
+  const { data, error } = await supabase
+    .from('championship_editors')
+    .select('championship:championships(*)')
+    .eq('user_id', userId);
+  if (error) throw error;
+  return (data ?? [])
+    .map((d: any) => d.championship)
+    .filter(Boolean)
+    .map(rowToChampionship);
+}

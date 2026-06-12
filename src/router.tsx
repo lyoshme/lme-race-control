@@ -2,12 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 
 export type PublicTab = 'overview' | 'drivers' | 'teams' | 'participants' | 'stages';
-export type ManageTab = 'settings' | 'teams' | 'scoring' | 'standings' | 'stages';
+export type ManageTab = 'settings' | 'teams' | 'scoring' | 'standings' | 'stages' | 'editors';
 
 export type Route =
   | { view: 'landing' }
   | { view: 'account' }
   | { view: 'admin' }
+  | { view: 'invite'; inviteId: string }
   | { view: 'public'; championshipId: string; tab: PublicTab }
   | { view: 'manage'; championshipId: string; tab: ManageTab };
 
@@ -16,6 +17,7 @@ interface RouterCtx {
   goHome: () => void;
   goAccount: () => void;
   goAdmin: () => void;
+  goInvite: (id: string) => void;
   goPublic: (id: string, tab?: PublicTab) => void;
   goManage: (id: string, tab?: ManageTab) => void;
   setPublicTab: (tab: PublicTab) => void;
@@ -32,6 +34,7 @@ function parseHash(): Route {
   const parts = hash.split('/').filter(Boolean);
   if (parts[0] === 'account') return { view: 'account' };
   if (parts[0] === 'admin') return { view: 'admin' };
+  if (parts[0] === 'invite' && parts[1]) return { view: 'invite', inviteId: parts[1] };
   // championship/:id[/tab] | championship/:id/manage[/tab]
   if (parts[0] === 'championship' && parts[1]) {
     const id = parts[1];
@@ -49,6 +52,7 @@ function buildHash(r: Route): string {
   if (r.view === 'landing') return '#/';
   if (r.view === 'account') return '#/account';
   if (r.view === 'admin') return '#/admin';
+  if (r.view === 'invite') return `#/invite/${r.inviteId}`;
   if (r.view === 'public') return `#/championship/${r.championshipId}/${r.tab}`;
   return `#/championship/${r.championshipId}/manage/${r.tab}`;
 }
@@ -74,6 +78,7 @@ export function RouterProvider({ children }: { children: ReactNode }) {
       goHome: () => navigate({ view: 'landing' }),
       goAccount: () => navigate({ view: 'account' }),
       goAdmin: () => navigate({ view: 'admin' }),
+      goInvite: (id) => navigate({ view: 'invite', inviteId: id }),
       goPublic: (id, tab = 'overview') =>
         navigate({ view: 'public', championshipId: id, tab }),
       goManage: (id, tab = 'settings') =>

@@ -5,3 +5,4 @@ export * as scoring from './scoring';
 export * as standings from './standings';
 export * as stages from './stages';
 export * as uploads from './uploads';
+export * as editors from './editors';

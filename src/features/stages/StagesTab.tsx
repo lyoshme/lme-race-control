@@ -8,14 +8,17 @@ import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
 import { revertStageFromStandings } from '@/lib/standingsCalc';
 import type { Driver, Stage, Standings, Team } from '@/types';
+import type { EditorPermissions } from '@/types';
 import { StageWizardModal } from './StageWizardModal';
 import { StageCard } from './StageCard';
 
 interface Props {
   championshipId: string;
+  permissions?: EditorPermissions;
 }
 
-export function StagesTab({ championshipId }: Props) {
+export function StagesTab({ championshipId, permissions }: Props) {
+  const canWrite = permissions?.canManageStages ?? true;
   const toast = useToast();
 
   const childFilter = `championship_id=eq.${championshipId}`;
@@ -103,9 +106,11 @@ export function StagesTab({ championshipId }: Props) {
             Проведено: <span className="tabular text-text-primary">{stages.length}</span>
           </p>
         </div>
-        <Button icon={<Plus size={16} />} onClick={() => setWizardOpen(true)}>
-          Провести этап
-        </Button>
+        {canWrite && (
+          <Button icon={<Plus size={16} />} onClick={() => setWizardOpen(true)}>
+            Провести этап
+          </Button>
+        )}
       </div>
 
       {stages.length === 0 ? (
@@ -114,9 +119,11 @@ export function StagesTab({ championshipId }: Props) {
           title="Этапов пока нет"
           description="Запустите мастер этапа: задайте параметры, выберите участников и расставьте их по местам."
           action={
-            <Button icon={<Plus size={16} />} onClick={() => setWizardOpen(true)}>
-              Провести первый этап
-            </Button>
+            canWrite ? (
+              <Button icon={<Plus size={16} />} onClick={() => setWizardOpen(true)}>
+                Провести первый этап
+              </Button>
+            ) : undefined
           }
         />
       ) : (
@@ -127,18 +134,20 @@ export function StagesTab({ championshipId }: Props) {
               stage={stage}
               drivers={drivers}
               teams={teams}
-              showDelete
+              showDelete={canWrite}
               onDelete={() => setConfirmDelete(stage)}
             />
           ))}
         </div>
       )}
 
-      <StageWizardModal
-        open={wizardOpen}
-        onClose={() => setWizardOpen(false)}
-        championshipId={championshipId}
-      />
+      {canWrite && (
+        <StageWizardModal
+          open={wizardOpen}
+          onClose={() => setWizardOpen(false)}
+          championshipId={championshipId}
+        />
+      )}
 
       <ConfirmDialog
         open={!!confirmDelete}
