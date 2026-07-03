@@ -150,6 +150,130 @@ body {
   animation: shimmer 1.4s infinite linear;
 }
 
+/* Градиентный текст */
+.text-gradient-lime {
+  background: linear-gradient(135deg, rgb(var(--lime-primary)), #fff 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow-pulse для CTA */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgb(var(--lime-primary) / 0.3), 0 0 24px rgb(var(--lime-primary) / 0.1); }
+  50% { box-shadow: 0 0 16px rgb(var(--lime-primary) / 0.5), 0 0 40px rgb(var(--lime-primary) / 0.2); }
+}
+.animate-glow-pulse {
+  animation: glow-pulse 2.5s ease-in-out infinite;
+}
+
+/* Ripple-эффект для кнопок */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgb(var(--lime-primary) / 0.25) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.btn-ripple:active::after {
+  opacity: 1;
+  transition: opacity 0s;
+}
+
+/* Card hover depth */
+.card-hover {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgb(var(--shadow-color) / var(--shadow-strength)), 0 0 0 1px rgb(var(--lime-primary) / 0.15);
+}
+
+/* Cascade stagger helpers (используют framer-motion, но fallback через CSS) */
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-bounce-soft {
+  animation: bounce-soft 2s ease-in-out infinite;
+}
+
+/* Slide-in справа для тостов */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+/* Progress bar для тостов */
+@keyframes toast-progress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+.toast-progress {
+  animation: toast-progress 4s linear forwards;
+}
+
+/* Parallax subtle */
+.parallax-banner {
+  will-change: transform;
+}
+
+/* Podium shimmer */
+@keyframes podium-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.podium-gold {
+  background: linear-gradient(90deg, #FFD700 0%, #FFF8DC 50%, #FFD700 100%);
+  background-size: 200% 100%;
+  animation: podium-shimmer 3s ease-in-out infinite;
+}
+.podium-silver {
+  background: linear-gradient(90deg, #C0C0C0 0%, #F5F5F5 50%, #C0C0C0 100%);
+  background-size: 200% 100%;
+  animation: podium-shimmer 3s ease-in-out infinite 0.3s;
+}
+.podium-bronze {
+  background: linear-gradient(90deg, #CD7F32 0%, #E8C49A 50%, #CD7F32 100%);
+  background-size: 200% 100%;
+  animation: podium-shimmer 3s ease-in-out infinite 0.6s;
+}
+
+/* Gradient border для hero */
+.hero-gradient-border {
+  position: relative;
+}
+.hero-gradient-border::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--lime-primary) / 0.4), transparent);
+}
+
+/* Уважение prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .card-hover:hover {
+    transform: none;
+  }
+}
+
 /* Фокус */
 *:focus-visible {
   outline: 2px solid rgb(var(--lime-primary));

@@ -1,3 +1,4 @@
+import { useCallback, useRef } from 'react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -39,14 +40,34 @@ export function Button({
   className = '',
   children,
   disabled,
+  onClick,
   ...rest
 }: Props) {
+  const ref = useRef<HTMLButtonElement>(null);
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      const btn = ref.current;
+      if (btn) {
+        const rect = btn.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        btn.style.setProperty('--ripple-x', `${x}%`);
+        btn.style.setProperty('--ripple-y', `${y}%`);
+      }
+      onClick?.(e);
+    },
+    [onClick],
+  );
+
   return (
     <button
+      ref={ref}
       {...rest}
       disabled={disabled || loading}
+      onClick={handleClick}
       className={[
-        'inline-flex items-center justify-center gap-2 rounded transition select-none',
+        'btn-ripple inline-flex items-center justify-center gap-2 rounded transition select-none',
         variantClass[variant],
         sizeClass[size],
         full ? 'w-full' : '',

@@ -23,7 +23,7 @@ export function ChampionshipCard({ championship }: Props) {
       : DISCIPLINE_LABELS[championship.discipline];
 
   return (
-    <div className="group bg-ink-card border border-ink-border rounded overflow-hidden hover:border-lime-primary transition flex flex-col">
+    <div className="group card-hover bg-ink-card border border-ink-border rounded overflow-hidden flex flex-col">
       <button
         onClick={() => goPublic(championship.id)}
         className="text-left flex-1 flex flex-col"
@@ -33,13 +33,15 @@ export function ChampionshipCard({ championship }: Props) {
             <img
               src={championship.banner}
               alt=""
-              className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-text-muted">
               <Flag size={36} />
             </div>
           )}
+          {/* Gradient overlay при hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-deep/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <div className="absolute top-3 left-3">
             <Badge variant={championship.status === 'active' ? 'lime' : 'muted'}>
               {championship.status === 'active' ? 'Активен' : 'Завершён'}

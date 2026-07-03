@@ -52,34 +52,52 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className="animate-slide-up flex items-start gap-3 bg-ink-elevated border border-ink-border rounded px-4 py-3 shadow-lg"
-            style={{
-              borderLeftWidth: 3,
-              borderLeftColor:
-                t.kind === 'success'
-                  ? 'rgb(var(--success))'
-                  : t.kind === 'error'
-                  ? 'rgb(var(--danger))'
-                  : 'rgb(var(--lime-primary))',
-            }}
+            className="animate-slide-in-right flex flex-col bg-ink-elevated border border-ink-border rounded overflow-hidden shadow-lg"
           >
-            {t.kind === 'success' && (
-              <CheckCircle2 size={18} className="mt-0.5 shrink-0" style={{ color: 'rgb(var(--success))' }} />
-            )}
-            {t.kind === 'error' && (
-              <AlertCircle size={18} className="mt-0.5 shrink-0" style={{ color: 'rgb(var(--danger))' }} />
-            )}
-            {t.kind === 'info' && (
-              <Info size={18} className="mt-0.5 shrink-0" style={{ color: 'rgb(var(--lime-primary))' }} />
-            )}
-            <div className="text-sm flex-1">{t.message}</div>
-            <button
-              onClick={() => remove(t.id)}
-              className="text-text-secondary hover:text-text-primary transition"
-              aria-label="Закрыть"
+            <div
+              className="flex items-start gap-3 px-4 py-3"
+              style={{
+                borderLeftWidth: 3,
+                borderLeftColor:
+                  t.kind === 'success'
+                    ? 'rgb(var(--success))'
+                    : t.kind === 'error'
+                    ? 'rgb(var(--danger))'
+                    : 'rgb(var(--lime-primary))',
+              }}
             >
-              <X size={16} />
-            </button>
+              {t.kind === 'success' && (
+                <CheckCircle2 size={18} className="mt-0.5 shrink-0" style={{ color: 'rgb(var(--success))' }} />
+              )}
+              {t.kind === 'error' && (
+                <AlertCircle size={18} className="mt-0.5 shrink-0" style={{ color: 'rgb(var(--danger))' }} />
+              )}
+              {t.kind === 'info' && (
+                <Info size={18} className="mt-0.5 shrink-0" style={{ color: 'rgb(var(--lime-primary))' }} />
+              )}
+              <div className="text-sm flex-1">{t.message}</div>
+              <button
+                onClick={() => remove(t.id)}
+                className="text-text-secondary hover:text-text-primary transition"
+                aria-label="Закрыть"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {/* Progress bar */}
+            <div className="h-0.5 w-full bg-ink-border">
+              <div
+                className="h-full toast-progress"
+                style={{
+                  backgroundColor:
+                    t.kind === 'success'
+                      ? 'rgb(var(--success))'
+                      : t.kind === 'error'
+                      ? 'rgb(var(--danger))'
+                      : 'rgb(var(--lime-primary))',
+                }}
+              />
+            </div>
           </div>
         ))}
       </div>

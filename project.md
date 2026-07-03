@@ -1,22 +1,35 @@
 # Документация проекта LMERC
 
-Добро пожаловать в проект **LMERC** — современную интерактивную веб-платформу для управления киберспортивными и реальными чемпионатами по автоспорту. Проект разработан как аналог сервиса *challenge.place*, но имеет уникальный визуальный стиль, гибкую систему очков и глубокую интеграцию с Supabase.
+Современная интерактивная веб-платформа для управления киберспортивными и реальными чемпионатами по автоспорту. Аналог *challenge.place* с уникальным визуальным стилем, гибкой системой очков и глубокой интеграцией с Supabase.
 
 ---
 
-## 🏗 Архитектура и Структура проекта
+## Стек технологий
 
-Приложение построено по модульной структуре на базе **React 18**, **Vite** и **TypeScript**.
+| Слой | Технологии |
+| :--- | :--- |
+| **UI** | React 18, TypeScript, Vite 5, Tailwind CSS 3 |
+| **Backend** | Supabase (PostgreSQL + RLS, Auth, Storage, Realtime) |
+| **DnD** | @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities |
+| **Анимации** | framer-motion (layout-анимации таблиц) |
+| **Изображения** | react-easy-crop (обрезка), Supabase Storage |
+| **Флаги** | flag-icons (CSS-флаги ISO 3166-1) |
+| **Иконки** | lucide-react |
+| **Шрифт** | TikTok Sans (Google Fonts, веса 300–900) |
+| **Деплой** | Vercel (SPA + Edge Functions для OG) |
 
-### Структура директорий
-```text
+---
+
+## Структура проекта
+
+```
 LMERC/
 ├── .env.example            # Шаблон переменных окружения
 ├── postcss.config.js       # Конфигурация PostCSS
 ├── tailwind.config.js      # Конфигурация Tailwind CSS
 ├── tsconfig.json           # Настройки TypeScript
 ├── vercel.json             # Настройки деплоя на Vercel (Edge-функции)
-├── vite.config.ts          # Конфигурация Vite
+├── vite.config.ts          # Конфигурация Vite (alias @ → src)
 ├── api/                    # Vercel Serverless/Edge функции
 │   └── share/
 │       └── [id].ts         # Edge-функция для генерации Open Graph мета-тегов
@@ -24,77 +37,106 @@ LMERC/
 │   └── migrations/
 │       └── 0001_init.sql   # SQL-миграция для инициализации БД
 └── src/
-    ├── App.tsx             # Корневой компонент приложения
-    ├── main.tsx            # Точка входа React
+    ├── App.tsx             # Корневой компонент (Toast → Auth → Router)
+    ├── main.tsx            # Точка входа (applyInitialTheme + React root)
     ├── types.ts            # Глобальные TypeScript типы
-    ├── router.tsx          # Клиентский Hash-роутер
-    ├── index.css           # Глобальные стили и переменные тем
+    ├── router.tsx          # Клиентский Hash-роутер (SPA)
+    ├── index.css           # Глобальные стили и CSS-переменные тем
+    ├── vite-env.d.ts       # Типы Vite
     ├── components/         # Общие компоненты интерфейса
-    │   ├── layout/         # Шапка, подвал и общая разметка (Header, HeroVideoBackground)
-    │   ├── toast/          # Контекст и UI для всплывающих уведомлений (ToastContext)
-    │   └── ui/             # Базовые UI элементы (Button, Input, Modal, Avatar, Crop и др.)
-    ├── hooks/              # Пользовательские хуки (useAuth, useTheme, useSupabaseQuery)
-    ├── lib/                # Вспомогательные библиотеки и вычисления
-    │   ├── api/            # API-слой для взаимодействия с Supabase (championships, teams, drivers и др.)
-    │   ├── countries.ts    # Справочник стран с ISO кодами
-    │   ├── database.types.ts # Сгенерированные типы базы данных Supabase
+    │   ├── layout/         # Header, HeroVideoBackground, Footer
+    │   ├── toast/          # ToastContext — всплывающие уведомления
+    │   └── ui/             # Button, Input, Modal, Avatar, Crop, Skeleton, ConfirmDialog и др.
+    ├── hooks/              # Пользовательские хуки
+    │   ├── useAuth.ts      # Сессия, вход/выход, профиль
+    │   ├── useTheme.ts     # Переключение тем dark/light (localStorage)
+    │   └── useSupabaseQuery.ts  # Реактивные запросы с подпиской на Realtime
+    ├── lib/                # Вспомогательные библиотеки
+    │   ├── api/            # API-слой (типизированные CRUD-функции)
+    │   │   ├── index.ts    # Barrel-export всех модулей API
+    │   │   ├── mappers.ts  # snake_case (БД) ↔ camelCase (домен)
+    │   │   ├── championships.ts
+    │   │   ├── teams.ts
+    │   │   ├── drivers.ts
+    │   │   ├── scoring.ts
+    │   │   ├── standings.ts
+    │   │   ├── stages.ts
+    │   │   ├── editors.ts  # Назначение редакторов и проверка прав
+    │   │   └── uploads.ts  # Загрузка файлов в Supabase Storage
+    │   ├── countries.ts    # Справочник стран ISO 3166-1
+    │   ├── database.types.ts  # Сгенерированные типы БД Supabase
     │   ├── id.ts           # Генератор UUID
-    │   ├── image.ts        # Обработка и сжатие изображений перед загрузкой
-    │   ├── scoring.ts      # Вспомогательные функции для подсчета очков
-    │   ├── standingsCalc.ts # Логика пересчета личного и командного зачетов
-    │   ├── storage.ts      # Функции работы с Supabase Storage (бакеты)
+    │   ├── image.ts        # Обработка и сжатие изображений
+    │   ├── scoring.ts      # Вспомогательные функции для подсчёта очков
+    │   ├── standingsCalc.ts  # Логика пересчёта личного и командного зачётов
+    │   ├── storage.ts      # Обёртка над localStorage с pub/sub
     │   └── supabase.ts     # Инициализация Supabase Client
     ├── features/           # Функциональные модули
-    │   ├── auth/           # Компоненты авторизации и OTP (AuthModal, UserMenu)
-    │   ├── championship/   # Логика и формы чемпионатов (ChampionshipCard, CreateChampionshipModal, SettingsTab)
-    │   ├── drivers/        # Модальное окно управления пилотами (DriverModal)
-    │   ├── scoring/        # Управление системами начисления очков (ScoringTab)
-    │   ├── stages/         # Мастер проведения этапа (Wizard) и история результатов
-    │   ├── standings/      # Отображение таблиц зачетов с анимациями (DriversTable, TeamsTable, StandingsInitTab)
-    │   └── teams/          # Управление командами и пилотами (TeamsTab, TeamModal с Drag-and-Drop)
+    │   ├── auth/           # AuthModal, UserMenu (Email OTP)
+    │   ├── championship/   # ChampionshipCard, CreateChampionshipModal, SettingsTab
+    │   ├── drivers/        # DriverModal
+    │   ├── scoring/        # ScoringTab (пресеты F1/Sprint/Custom)
+    │   ├── stages/         # StageWizard (4 шага), карточки этапов
+    │   ├── standings/      # DriversTable, TeamsTable, StandingsInitTab
+    │   └── teams/          # TeamsTab, TeamModal (Drag-and-Drop)
     └── pages/              # Страницы приложения
-        ├── Landing.tsx             # Главная страница (лендинг и список чемпионатов)
+        ├── Landing.tsx             # Главная страница + список чемпионатов
         ├── Account.tsx             # Личный кабинет организатора
-        ├── AdminPanel.tsx          # Панель администратора (модерация чемпионатов)
-        ├── ChampionshipPublic.tsx  # Публичная страница чемпионата (таблицы, этапы, участники)
-        └── ChampionshipManage.tsx  # Панель управления конкретным чемпионатом (для владельца)
+        ├── AdminPanel.tsx          # Панель администратора (модерация)
+        ├── ChampionshipPublic.tsx  # Публичная страница чемпионата
+        ├── ChampionshipManage.tsx  # Панель управления чемпионатом
+        └── InviteAccept.tsx        # Приём приглашения редактора
 ```
 
 ---
 
-## 🎨 Визуальная Идентичность и Стилизация
+## Маршрутизация (Hash Router)
 
-В LMERC реализован премиальный дизайн с поддержкой тёмного и светлого режимов (переключение в шапке). Тёмный режим является темой по умолчанию.
+| Хеш-роут | Страница | Вкладки |
+| :--- | :--- | :--- |
+| `#/` | Landing | — |
+| `#/account` | Account | — |
+| `#/admin` | AdminPanel | — |
+| `#/invite/:id` | InviteAccept | — |
+| `#/championship/:id/:tab` | ChampionshipPublic | overview, drivers, teams, participants, stages |
+| `#/championship/:id/manage/:tab` | ChampionshipManage | settings, teams, scoring, standings, stages, editors |
+
+---
+
+## Визуальная идентичность и стилизация
+
+Тёмный режим — тема по умолчанию. Переключение через `data-theme` атрибут на `<html>`.
 
 ### Цветовая палитра (CSS-переменные в `src/index.css`)
 
 | Токен | Тёмная тема | Светлая тема | Назначение |
 | :--- | :--- | :--- | :--- |
-| `--lime-primary` | `198 255 0` (Lime #C6FF00) | `132 175 0` | Кнопки действия (CTA), активные элементы, акценты |
+| `--lime-primary` | `198 255 0` (#C6FF00) | `132 175 0` | Кнопки CTA, активные элементы |
 | `--lime-dark` | `168 217 0` | `105 140 0` | Hover-состояния, бордеры |
-| `--lime-muted` | `212 255 77` | `168 217 0` | Подсветки, бейджи, теги |
-| `--ink-deep` | `10 10 10` (Черный) | `250 250 250` | Основной фон страниц |
-| `--ink-card` | `17 17 17` | `255 255 255` | Фоновый цвет карточек |
-| `--ink-elevated` | `26 26 26` | `245 245 245` | Модальные окна, сайдбары |
+| `--lime-muted` | `212 255 77` | `168 217 0` | Подсветки, бейджи |
+| `--ink-deep` | `10 10 10` | `250 250 250` | Фон страниц |
+| `--ink-card` | `17 17 17` | `255 255 255` | Фон карточек |
+| `--ink-elevated` | `26 26 26` | `245 245 245` | Модалки, сайдбары |
 | `--ink-surface` | `34 34 34` | `240 240 240` | Поля ввода, таблицы |
-| `--ink-border` | `42 42 42` | `224 224 224` | Тонкие разделители и рамки |
-| `--danger` | `255 59 48` (Красный) | `215 38 30` | Ошибки, деструктивные операции |
-| `--success` | `52 199 89` (Зеленый) | `30 142 62` | Успешные операции, подтверждения |
+| `--ink-border` | `42 42 42` | `224 224 224` | Разделители, рамки |
+| `--danger` | `255 59 48` | `215 38 30` | Ошибки, деструктивные операции |
+| `--success` | `52 199 89` | `30 142 62` | Успешные операции |
 
-### Шрифты
-*   Основной шрифт: **TikTok Sans** (подключен из Google Fonts, веса 300–900). Обеспечивает отличную читаемость таблиц и числовых данных.
-*   Кастомные стили трекинга текста (разреженности):
-    *   `.tracking-display` (2px) — для заголовков чемпионатов
-    *   `.tracking-section` (1.5px) — для разделов меню
-    *   `.tracking-badge` (1px) — для мелких ярлыков и подписей
+### Кастомные трекинги текста
+- `.tracking-display` (2px) — заголовки чемпионатов
+- `.tracking-section` (1.5px) — разделы меню
+- `.tracking-badge` (1px) — бейджи и подписи
+
+### Tailwind-расширения (`tailwind.config.js`)
+Все цвета через `rgb(var(...) / <alpha-value>)` для поддержки alpha-модификаторов (`bg-lime-primary/50`).
 
 ---
 
-## 🛢 Схема данных Supabase (PostgreSQL)
+## Схема данных Supabase (PostgreSQL)
 
-База данных построена в Supabase с включенной политикой безопасности **Row Level Security (RLS)** для защиты данных пользователей.
+БД с включённой **Row Level Security (RLS)**.
 
-### Диаграмма связей данных (Entity-Relationship)
+### Диаграмма связей (ER)
 
 ```mermaid
 erDiagram
@@ -110,13 +152,13 @@ erDiagram
         uuid owner_id FK
         string title
         string slogan
-        string banner
+        string banner_url
         text description
         string discipline
         string discipline_custom
         string season
+        string lifecycle
         string status
-        string moderation_status
         text rejection_reason
         timestamp approved_at
         timestamp created_at
@@ -125,7 +167,7 @@ erDiagram
         uuid id PK
         uuid championship_id FK
         string name
-        string logo
+        string logo_url
         string color
         uuid[] driver_ids
     }
@@ -137,7 +179,7 @@ erDiagram
         string last_name
         string number
         string country
-        string photo
+        string photo_url
     }
     SCORING_SYSTEMS {
         uuid id PK
@@ -159,26 +201,13 @@ erDiagram
         uuid championship_id FK
         string name
         string track
-        date date
+        date stage_date
         string type
         uuid scoring_id FK
         uuid[] participant_ids
         jsonb results
         timestamp created_at
     }
-
-    PROFILES ||--o{ CHAMPIONSHIPS : "создает"
-    CHAMPIONSHIPS ||--o{ TEAMS : "содержит"
-    CHAMPIONSHIPS ||--o{ DRIVERS : "содержит"
-    CHAMPIONSHIPS ||--o{ SCORING_SYSTEMS : "настраивает"
-    CHAMPIONSHIPS ||--|| STANDINGS : "имеет зачеты"
-    CHAMPIONSHIPS ||--o{ STAGES : "проводит"
-    TEAMS ||--o{ DRIVERS : "включает"
-    STAGES ||--|| SCORING_SYSTEMS : "использует"
-    CHAMPIONSHIPS ||--o{ CHAMPIONSHIP_EDITORS : "назначает"
-    PROFILES ||--o{ CHAMPIONSHIP_EDITORS : "является"
-    CHAMPIONSHIPS ||--o{ CHAMPIONSHIP_INVITES : "создаёт"
-
     CHAMPIONSHIP_EDITORS {
         uuid id PK
         uuid championship_id FK
@@ -196,130 +225,168 @@ erDiagram
         boolean can_manage_scoring
         boolean can_manage_stages
     }
+
+    PROFILES ||--o{ CHAMPIONSHIPS : "создает"
+    CHAMPIONSHIPS ||--o{ TEAMS : "содержит"
+    CHAMPIONSHIPS ||--o{ DRIVERS : "содержит"
+    CHAMPIONSHIPS ||--o{ SCORING_SYSTEMS : "настраивает"
+    CHAMPIONSHIPS ||--|| STANDINGS : "имеет зачеты"
+    CHAMPIONSHIPS ||--o{ STAGES : "проводит"
+    TEAMS ||--o{ DRIVERS : "включает"
+    STAGES ||--|| SCORING_SYSTEMS : "использует"
+    CHAMPIONSHIPS ||--o{ CHAMPIONSHIP_EDITORS : "назначает"
+    PROFILES ||--o{ CHAMPIONSHIP_EDITORS : "является"
+    CHAMPIONSHIPS ||--o{ CHAMPIONSHIP_INVITES : "создаёт"
 ```
 
-### Безопасность RLS (Row Level Security)
-1.  **Profiles**:
-    *   Чтение: Доступно любому аутентифицированному пользователю.
-    *   Запись/Обновление: Только владелец профиля (`auth.uid() = id`).
-2.  **Championships**:
-    *   Чтение: Только одобренные (`moderation_status = 'approved'`), либо владельцу чемпионата, либо администратору.
-    *   Создание: Люгой аутентифицированный пользователь.
-    *   Обновление: Только владелец чемпионата (`owner_id = auth.uid()`) или администратор.
-3.  **Другие таблицы** (`teams`, `drivers`, `stages`, `standings`):
-    *   Чтение: Публичное (для отображения результатов).
-    *   Запись/Обновление: Владельцу чемпионата, администратору или **назначенному редактору** с соответствующим правом доступа (проверяется через функцию `has_championship_permission`).
+### Политики RLS
+1. **Profiles**: чтение — все аутентифицированные; запись — только владелец.
+2. **Championships**: чтение — `approved` публично + владелец + админ; запись — владелец или админ.
+3. **Teams/Drivers/Stages/Standings/Scoring**: чтение — публичное; запись — владелец чемпионата, админ или редактор с соответствующим правом (проверка через `has_championship_permission`).
 
 ---
 
-## ⚡️ Функциональные возможности по шагам
+## Функциональные возможности
 
-### 1. Авторизация и Роли
-*   Вход реализован по беспарольному коду (**Email OTP**). Пользователю на почту приходит 6-значный код подтверждения.
-*   При первом входе автоматически создаётся профиль в `profiles`.
-*   Администратор сайта назначается вручную в БД флагом `is_admin = true`. Администратор имеет доступ к специальной панели `/admin` для модерации создаваемых чемпионатов.
+### 1. Авторизация и роли
+- **Email OTP**: вход по 6-значному коду, автосоздание профиля в `profiles`.
+- **Администратор**: назначается вручную флагом `is_admin = true` в БД. Имеет доступ к `/admin`.
 
-### 2. Модерация Чемпионатов
-*   При создании чемпионата организатором он переходит в статус `pending` и не отображается на главной странице.
-*   Администратор в своей панели видит список заявок на модерацию и может:
-    *   **Одобрить**: статус меняется на `approved`, чемпионат становится публичным.
-    *   **Отклонить**: статус меняется на `rejected`, указывается текстовая причина отклонения. Организатор видит её в своём кабинете.
+### 2. Модерация чемпионатов
+- При создании статус `pending` → админ одобряет (`approved`) или отклоняет (`rejected` с причиной).
+- На главной — только одобренные чемпионаты.
 
-### 3. Управление Командами и Пилотами (DnD)
-*   **Drag-and-Drop**: Интерфейс на базе `@dnd-kit/core` позволяет перетаскивать пилотов между командами на интерактивной доске.
-*   Существует зона «Без команды» для свободных пилотов.
-*   Все изменения пилотов и команд синхронизируются с Supabase в реальном времени.
+### 3. Управление командами и пилотами (DnD)
+- Drag-and-Drop через `@dnd-kit`: пилоты перетаскиваются между командами и в зону «Без команды».
+- Синхронизация с Supabase в реальном времени.
 
-### 4. Мастер проведения этапа (Stage Wizard)
-Проведение этапа состоит из 4 интерактивных шагов:
-
+### 4. Мастер проведения этапа (Stage Wizard — 4 шага)
 ```mermaid
 flowchart TD
     A[Шаг 1: Параметры этапа] -->|Название, трасса, тип, выбор очков| B[Шаг 2: Участники]
     B -->|Выбор пилотов чекбоксами| C[Шаг 3: Расстановка мест DnD]
     C -->|Перетаскивание пилотов в слоты финиша| D[Шаг 4: Подтверждение]
-    D -->|Атомарная фиксация результатов и пересчет зачетов| E[Готово: Публикация этапа]
+    D -->|Атомарная фиксация результатов и пересчёт зачётов| E[Готово]
 ```
+- **Pole position** и **fastest lap** (по одному пилоту на этап) с live-расчётом очков.
+- **Атомарность**: при сохранении для каждого пилота фиксируется его `teamId` — корректный откат при смене команды или удалении этапа.
 
-*   **Атомарность**: При сохранении результатов этапа для каждого пилота фиксируется его `teamId` на момент проведения гонки. Это гарантирует, что если пилот позже сменит команду, исторические очки командного зачета останутся корректными, а при откате (удалении) этапа баланс очков вернется в исходное состояние.
-
-### 5. SEO и Социальный шеринг (Open Graph)
-Для одностраничного приложения (SPA) на базе хэш-роутинга реализована бесшовная поддержка превью при публикации ссылок в соцсетях и мессенджерах:
-*   **Edge-функция Vercel** ([[id].ts](file:///c:/Users/Алексей/Desktop/LMERC/api/share/[id].ts)): Перехватывает запросы по адресу `/api/share/[id]`.
-*   **Динамическая генерация OG-тегов**: Функция запрашивает данные о чемпионате из Supabase, на лету формирует HTML с мета-тегами (`og:title`, `og:description`, `og:image`) и отдаёт поисковым роботам и мессенджерам.
-*   **Редирект на клиентский роут**: Обычные пользователи мгновенно перенаправляются на соответствующий хэш-роут (`#/championship/${id}/overview`) с помощью HTTP Refresh заголовка и клиентского JavaScript-скрипта.
+### 5. SEO и социальный шеринг (Open Graph)
+- **Edge-функция Vercel** (`api/share/[id].ts`): генерирует OG-теги (`og:title`, `og:description`, `og:image`) из Supabase.
+- Обычные пользователи перенаправляются на `#/championship/${id}/overview`.
 
 ### 6. Со-администрирование и приглашения
-Реализована система делегирования прав управления чемпионатом другим пользователям:
-*   **Гибкие права**: Владелец может назначить редактора с разным набором прав: управление настройками, командами/пилотами, системой очков или проведением этапов.
-*   **Инвайты**: Создание уникальных ссылок-приглашений. При переходе по ссылке пользователь видит список предоставляемых прав и может принять приглашение.
-*   **Проверка доступа**: На уровне БД (PostgreSQL) реализована функция `has_championship_permission`, которая атомарно проверяет роль пользователя (Admin $\to$ Owner $\to$ Editor) перед выполнением любой модифицирующей операции.
+- **Гибкие права**: владелец назначает редактора с правами: настройки, команды/пилоты, систему очков, этапы.
+- **Инвайты**: уникальные ссылки. При переходе пользователь видит предоставляемые права и принимает приглашение.
+- **Проверка доступа**: PostgreSQL-функция `has_championship_permission` атомарно проверяет роль (Admin → Owner → Editor).
+
+### 7. Реактивные запросы
+- `useSupabaseQuery` — хук с авто-подпиской на Realtime-изменения таблиц.
 
 ---
 
-## 🚀 Быстрый старт
+## API-слой (`src/lib/api/`)
+
+Типизированные CRUD-функции для всех сущностей. Конвертация snake_case ↔ camelCase через `mappers.ts`.
+
+| Модуль | Описание |
+| :--- | :--- |
+| `championships.ts` | CRUD чемпионатов, фильтрация по статусу модерации |
+| `teams.ts` | CRUD команд |
+| `drivers.ts` | CRUD пилотов |
+| `scoring.ts` | CRUD систем начисления очков |
+| `standings.ts` | чтение/запись зачётов |
+| `stages.ts` | CRUD этапов, подтверждение результатов |
+| `editors.ts` | назначение/удаление редакторов, проверка прав |
+| `uploads.ts` | загрузка файлов в Supabase Storage (banners, logos, photos) |
+| `mappers.ts` | маппинг БД-строк → доменные типы и обратно |
+
+---
+
+## Переменные окружения
+
+```env
+VITE_SUPABASE_URL=https://YOUR-PROJECT-REF.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
+```
+
+Значения из Supabase → Project Settings → API.
+
+---
+
+## Быстрый старт
 
 ### Требования
-*   Установленная **Node.js** (версии 18 и выше)
-*   Аккаунт **Supabase**
+- **Node.js** 18+
+- Аккаунт **Supabase**
 
-### Настройка проекта локально
+### Настройка
 
-1.  **Клонирование и установка зависимостей**:
-    ```bash
-    npm install
-    ```
+1. `npm install`
+2. Скопировать `.env.example` в `.env`, заполнить ключи Supabase
+3. SQL Editor → выполнить `supabase/migrations/0001_init.sql`
+4. Supabase Storage → создать публичные бакеты: `banners`, `logos`, `photos`
+5. Supabase → Replication → включить Realtime для: `championships`, `teams`, `drivers`, `scoring_systems`, `standings`, `stages`
+6. `npm run dev` → http://localhost:5173
 
-2.  **Настройка окружения**:
-    Создайте файл `.env` в корневом каталоге (скопировав `.env.example`) и укажите ваши ключи Supabase:
-    ```env
-    VITE_SUPABASE_URL=https://your-project-id.supabase.co
-    VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-    ```
-
-3.  **Инициализация базы данных**:
-    *   Перейдите в консоль Supabase -> **SQL Editor**.
-    *   Создайте новый запрос и выполните содержимое файла `supabase/migrations/0001_init.sql`. Это создаст все необходимые таблицы, триггеры, функции и настроит политики RLS.
-
-4.  **Создание Storage Buckets**:
-    Перейдите в раздел **Storage** в Supabase и создайте три публичных бакета:
-    *   `banners` (для баннеров чемпионатов)
-    *   `logos` (для логотипов команд)
-    *   `photos` (для фотографий пилотов)
-    *   *Убедитесь, что бакеты имеют статус **Public**, чтобы изображения были доступны гостям.*
-
-5.  **Включение Realtime**:
-    Для мгновенного обновления таблиц у всех пользователей включите **Realtime** для следующих таблиц в панели Supabase (Database -> Replication -> Source):
-    *   `championships`
-    *   `teams`
-    *   `drivers`
-    *   `scoring_systems`
-    *   `standings`
-    *   `stages`
-
-6.  **Запуск локального сервера**:
-    ```bash
-    npm run dev
-    ```
-    Приложение запустится по адресу: [http://localhost:5173](http://localhost:5173).
+### Первый админ
+```sql
+UPDATE public.profiles SET is_admin = true WHERE email = 'твой@email';
+```
 
 ---
 
-## 🛠 Полезные команды для разработки
+## Команды разработки
 
-*   `npm run dev` — запуск локального dev-сервера с hot-reload.
-*   `npm run build` — сборка проекта для продакшена (включает проверку типов TypeScript).
-*   `npm run preview` — локальный запуск собранного дистрибутива из папки `dist`.
+| Команда | Описание |
+| :--- | :--- |
+| `npm run dev` | Dev-сервер с hot-reload |
+| `npm run build` | Сборка для продакшена (tsc + vite build) |
+| `npm run preview` | Локальный запуск собранного dist |
 
 ---
 
-## 📈 Бэклог и Идеи для развития (Roadmap)
+## Реализованная функциональность
 
-> [!NOTE]
-> Список задач для будущих итераций разработки:
+### Итерация 1
+- Лендинг с сеткой чемпионатов и пустым состоянием
+- Полупрозрачное hero-видео на главной (`public/hero.mp4`)
+- Создание чемпионата (баннер с обрезкой и авто-сжатием, описание, дисциплина, сезон)
+- Публичная страница чемпионата (Обзор, Пилоты, Команды, Участники, Этапы)
+- CRUD команд (логотип, цвет) и пилотов (фото с обрезкой, номер, страна)
+- Система очков с пресетами (F1, Sprint, Custom) и бонусами
+- Инициализация и сброс таблиц
+- Toasts, валидация, скелетоны, confirm-диалоги
+- Тёмная и светлая темы
+- Полный список стран ISO 3166-1 с CSS-флагами
 
-*   [ ] **Генерация сетки кубковых соревнований (Playoffs)**: Добавление сетки на выбывание (1/8, 1/4, полуфиналы, финал) для турниров по картингу или дуэльных заездов.
-*   [ ] **Интеграция с внешними симуляторами**: API для автоматического импорта результатов заездов (JSON/CSV) из Assetto Corsa Competizione, iRacing или F1 23/24.
-*   [ ] **Поддержка командных экипажей**: Возможность назначать нескольких пилотов на одну машину (актуально для гонок на выносливость Endurance).
-*   [ ] **Детальная статистика пилотов**: Графики динамики позиций в чемпионате, тепловые карты финишей, сравнение напарников по команде.
-*   [ ] **Уведомления**: Telegram-бот для рассылки новостей об изменениях в турнирной таблице и анонсов этапов.
+### Итерация 2
+- Drag-and-drop пилотов между командами и в зону «Без команды»
+- Мастер этапа в 4 шага с DnD-расстановкой по местам
+- Pole position и fastest lap с live-расчётом очков
+- Атомарная фиксация `teamId` в результатах этапа
+- Карточки этапов с подиумом и модалом полных результатов
+- Автоматический пересчёт очков при подтверждении этапа, зеркальный откат при удалении
+- Анимация перестановки строк через `framer-motion` layout
+
+### Итерация 3
+- Supabase backend: Postgres с RLS, Auth, Storage, Realtime
+- Email OTP вход, автосоздание профиля
+- Роли: `is_admin`, админ-панель с модерацией
+- Модерация чемпионатов: pending → approved/rejected
+- API-слой с типизированными CRUD-функции
+- Реактивные запросы через `useSupabaseQuery`
+- Загрузка изображений в Supabase Storage
+- Личный кабинет с бейджами статуса
+- Шаринг + OG-теги через Edge Function
+- Удалены `lib/data.ts` и `useStorage.ts` (теперь только Supabase)
+
+---
+
+## Бэклог и roadmap
+
+- [ ] Генерация сетки кубковых соревнований (Playoffs): сетка на выбывание (1/8, 1/4, полуфиналы, финал)
+- [ ] Интеграция с внешними симуляторами: API-импорт результатов (JSON/CSV) из Assetto Corsa Competizione, iRacing, F1 24
+- [ ] Поддержка командных экипажей: несколько пилотов на одну машину (Endurance)
+- [ ] Детальная статистика пилотов: графики динамики, тепловые карты финишей, сравнение напарников
+- [ ] Уведомления: Telegram-бот для рассылки новостей о турнирной таблице и анонса этапов

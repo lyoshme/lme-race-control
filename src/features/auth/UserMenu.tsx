@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, Shield, User as UserIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from '@/router';
 
@@ -47,62 +48,68 @@ export function UserMenu() {
         </span>
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 mt-2 w-56 bg-ink-elevated border border-ink-border rounded shadow-2xl overflow-hidden z-40"
-        >
-          <div className="px-3 py-2 border-b border-ink-border">
-            <div className="text-[11px] uppercase tracking-badge text-text-muted">
-              Вошли как
-            </div>
-            <div className="text-sm font-bold truncate">
-              {profile?.email || session.user.email}
-            </div>
-            {profile?.is_admin && (
-              <div className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-badge text-lime-primary">
-                <Shield size={10} /> Администратор
-              </div>
-            )}
-          </div>
-
-          <MenuItem
-            icon={<UserIcon size={14} />}
-            onClick={() => {
-              setOpen(false);
-              goAccount();
-            }}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            role="menu"
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+            className="absolute right-0 mt-2 w-56 bg-ink-elevated border border-ink-border rounded shadow-2xl overflow-hidden z-40"
           >
-            Личный кабинет
-          </MenuItem>
+            <div className="px-3 py-2 border-b border-ink-border">
+              <div className="text-[11px] uppercase tracking-badge text-text-muted">
+                Вошли как
+              </div>
+              <div className="text-sm font-bold truncate">
+                {profile?.email || session.user.email}
+              </div>
+              {profile?.is_admin && (
+                <div className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-badge text-lime-primary">
+                  <Shield size={10} /> Администратор
+                </div>
+              )}
+            </div>
 
-          {profile?.is_admin && (
             <MenuItem
-              icon={<Shield size={14} />}
+              icon={<UserIcon size={14} />}
               onClick={() => {
                 setOpen(false);
-                goAdmin();
+                goAccount();
               }}
             >
-              Админ-панель
+              Личный кабинет
             </MenuItem>
-          )}
 
-          <div className="border-t border-ink-border" />
+            {profile?.is_admin && (
+              <MenuItem
+                icon={<Shield size={14} />}
+                onClick={() => {
+                  setOpen(false);
+                  goAdmin();
+                }}
+              >
+                Админ-панель
+              </MenuItem>
+            )}
 
-          <MenuItem
-            icon={<LogOut size={14} />}
-            danger
-            onClick={async () => {
-              setOpen(false);
-              await signOut();
-              goHome();
-            }}
-          >
-            Выйти
-          </MenuItem>
-        </div>
-      )}
+            <div className="border-t border-ink-border" />
+
+            <MenuItem
+              icon={<LogOut size={14} />}
+              danger
+              onClick={async () => {
+                setOpen(false);
+                await signOut();
+                goHome();
+              }}
+            >
+              Выйти
+            </MenuItem>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

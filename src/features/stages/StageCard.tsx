@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Calendar, Flag, MapPin, Trash2, Users, ChevronDown } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { CountryFlag } from '@/components/ui/CountryFlag';
@@ -20,7 +21,7 @@ const TYPE_LABELS: Record<StageType, string> = {
   sprint: 'Спринт',
 };
 
-const PODIUM_BG = ['bg-[#FFD700]', 'bg-[#C0C0C0]', 'bg-[#CD7F32]'];
+const PODIUM_CLASS = ['podium-gold', 'podium-silver', 'podium-bronze'];
 
 export function StageCard({ stage, drivers, teams, showDelete, onDelete }: Props) {
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -35,7 +36,7 @@ export function StageCard({ stage, drivers, teams, showDelete, onDelete }: Props
   });
 
   return (
-    <div className="bg-ink-card border border-ink-border rounded overflow-hidden hover:border-lime-primary/60 transition flex flex-col">
+    <div className="card-hover bg-ink-card border border-ink-border rounded overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-ink-border flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold tracking-section uppercase truncate">
@@ -73,19 +74,22 @@ export function StageCard({ stage, drivers, teams, showDelete, onDelete }: Props
         {podium.length === 0 ? (
           <span className="text-sm text-text-muted">Нет результатов</span>
         ) : (
-          podium.map((r) => {
+          podium.map((r, i) => {
             const driver = driverMap.get(r.driverId);
             const team = r.teamId ? teamMap.get(r.teamId) ?? null : null;
             const idx = r.position - 1;
             return (
-              <div
+              <motion.div
                 key={r.driverId}
-                className="flex items-center gap-2 px-2 py-1.5 rounded bg-ink-elevated"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1, duration: 0.3 }}
+                className="flex items-center gap-2 px-2 py-1.5 rounded bg-ink-elevated hover:bg-ink-surface transition-colors"
               >
                 <span
                   className={[
                     'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold tabular text-ink-deep shrink-0',
-                    PODIUM_BG[idx] ?? 'bg-text-muted',
+                    PODIUM_CLASS[idx] ?? 'bg-text-muted',
                   ].join(' ')}
                 >
                   {r.position}
@@ -121,7 +125,7 @@ export function StageCard({ stage, drivers, teams, showDelete, onDelete }: Props
                 <span className="tabular text-sm font-bold text-lime-primary shrink-0">
                   +{r.points}
                 </span>
-              </div>
+              </motion.div>
             );
           })
         )}

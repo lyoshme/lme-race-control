@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Plus, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { CardSkeleton } from '@/components/ui/Skeleton';
 import { CreateChampionshipModal } from '@/features/championship/CreateChampionshipModal';
 import { ChampionshipCard } from '@/features/championship/ChampionshipCard';
 import { HeroVideoBackground } from '@/components/layout/HeroVideoBackground';
@@ -10,6 +11,26 @@ import { AuthModal } from '@/features/auth/AuthModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
+
+const heroStagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
+
+const heroItem = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+};
+
+const cardStagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const cardItem = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+};
 
 export function Landing() {
   const { session } = useAuth();
@@ -36,11 +57,6 @@ export function Landing() {
       {/* Hero c видео-фоном */}
       <section className="relative border-b border-ink-border overflow-hidden isolate">
         <HeroVideoBackground src="/newvid.mp4" />
-        {/*
-          Затемняющий градиент: снизу плавно переходит в основной фон,
-          чтобы стык hero ↔ список чемпионатов был незаметен. Слева — скрим
-          под текстом для контраста.
-        */}
         <div
           className="absolute inset-0 pointer-events-none bg-gradient-to-r from-ink-deep/85 via-ink-deep/50 to-transparent"
           aria-hidden="true"
@@ -50,25 +66,42 @@ export function Landing() {
           aria-hidden="true"
         />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-          <div className="flex flex-col items-start gap-6 max-w-3xl">
-            <span className="text-xs uppercase tracking-badge text-lime-primary">
+          <motion.div
+            className="flex flex-col items-start gap-6 max-w-3xl"
+            variants={heroStagger}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.span
+              variants={heroItem}
+              className="text-xs uppercase tracking-badge text-lime-primary"
+            >
               Платформа для автоспорта
-            </span>
-            <h1 className="text-5xl sm:text-7xl font-bold leading-none tracking-display">
+            </motion.span>
+            <motion.h1
+              variants={heroItem}
+              className="text-5xl sm:text-7xl font-bold leading-none tracking-display text-gradient-lime"
+            >
               LMERC
-            </h1>
-            <p className="text-base sm:text-lg text-text-secondary max-w-xl">
+            </motion.h1>
+            <motion.p
+              variants={heroItem}
+              className="text-base sm:text-lg text-text-secondary max-w-xl"
+            >
               Создавайте чемпионаты, управляйте командами и пилотами,
               ведите таблицы и проводите этапы — всё в одном месте.
-            </p>
-            <Button
-              size="lg"
-              icon={<Plus size={18} />}
-              onClick={handleCreateClick}
-            >
-              Создать чемпионат
-            </Button>
-          </div>
+            </motion.p>
+            <motion.div variants={heroItem}>
+              <Button
+                size="lg"
+                icon={<Plus size={18} />}
+                onClick={handleCreateClick}
+                className="animate-glow-pulse"
+              >
+                Создать чемпионат
+              </Button>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
@@ -88,7 +121,7 @@ export function Landing() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-72" />
+              <CardSkeleton key={i} />
             ))}
           </div>
         ) : !items || items.length === 0 ? (
@@ -103,11 +136,18 @@ export function Landing() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            variants={cardStagger}
+            initial="hidden"
+            animate="visible"
+          >
             {items.map((c) => (
-              <ChampionshipCard key={c.id} championship={c} />
+              <motion.div key={c.id} variants={cardItem}>
+                <ChampionshipCard championship={c} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </section>
 

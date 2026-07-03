@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   Lock,
   User,
@@ -23,6 +24,16 @@ import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
 import type { Championship } from '@/types';
 import { DISCIPLINE_LABELS } from '@/types';
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
 
 export function Account() {
   const { session, profile, initializing, updateProfile } = useAuth();
@@ -101,7 +112,12 @@ export function Account() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       {/* Profile header */}
-      <div className="flex items-start gap-4 mb-8">
+      <motion.div
+        className="flex items-start gap-4 mb-8"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
         <span className="w-14 h-14 rounded-full bg-lime-primary text-ink-deep flex items-center justify-center text-2xl font-bold shrink-0">
           {(profile?.email ?? session.user.email ?? '?').charAt(0).toUpperCase()}
         </span>
@@ -144,7 +160,7 @@ export function Account() {
             {profile?.email || session.user.email}
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* My Championships */}
       <div className="flex items-center justify-between mb-4">
@@ -171,11 +187,18 @@ export function Account() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+          variants={stagger}
+          initial="hidden"
+          animate="visible"
+        >
           {myChampionships.map((c) => (
-            <ChampCard key={c.id} championship={c} onManage={() => goManage(c.id)} onPublic={() => goPublic(c.id)} />
+            <motion.div key={c.id} variants={item}>
+              <ChampCard championship={c} onManage={() => goManage(c.id)} onPublic={() => goPublic(c.id)} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
 
       {/* Edited Championships */}
@@ -189,16 +212,22 @@ export function Account() {
               <Skeleton className="h-32" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <motion.div
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+              variants={stagger}
+              initial="hidden"
+              animate="visible"
+            >
               {editedChampionships.map((c) => (
-                <ChampCard
-                  key={c.id}
-                  championship={c}
-                  onManage={() => goManage(c.id)}
-                  onPublic={() => goPublic(c.id)}
-                />
+                <motion.div key={c.id} variants={item}>
+                  <ChampCard
+                    championship={c}
+                    onManage={() => goManage(c.id)}
+                    onPublic={() => goPublic(c.id)}
+                  />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
       )}
@@ -230,7 +259,7 @@ function ChampCard({
         : 'На модерации';
 
   return (
-    <div className="bg-ink-card border border-ink-border rounded p-4 flex flex-col gap-3 hover:border-lime-primary/40 transition">
+    <div className="card-hover bg-ink-card border border-ink-border rounded p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <h3 className="font-bold tracking-section uppercase truncate">{championship.title}</h3>

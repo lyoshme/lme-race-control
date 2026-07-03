@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { Settings, Flag, Users, CalendarDays, ChevronLeft, Clock, Share2 } from 'lucide-react';
 import { Tabs } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
@@ -116,7 +117,6 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
     );
   }
 
-  // Pending/Rejected: показываем только владельцу/админу
   const moderation = championship.moderationStatus;
   if (moderation !== 'approved' && !organizer) {
     return (
@@ -144,19 +144,16 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
 
   return (
     <>
-      {/* Hero / банер */}
+      {/* Hero / банер с parallax */}
       <section className="border-b border-ink-border">
-        <div className="relative overflow-hidden">
-          {championship.banner ? (
-            <div className="absolute inset-0">
-              <img src={championship.banner} alt="" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink-deep via-ink-deep/85 to-ink-deep/40" />
-            </div>
-          ) : (
-            <div className="absolute inset-0 bg-ink-card" />
-          )}
+        <ChampionshipBanner banner={championship.banner}>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-            <div className="flex flex-col gap-4 max-w-3xl">
+            <motion.div
+              className="flex flex-col gap-4 max-w-3xl"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+            >
               <div className="flex items-center gap-2 flex-wrap">
                 {moderation === 'pending' && (
                   <Badge variant="muted">На модерации</Badge>
@@ -215,9 +212,9 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
                   </Button>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </ChampionshipBanner>
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -269,6 +266,35 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
   );
 }
 
+/** Parallax баннер чемпионата */
+function ChampionshipBanner({ banner, children }: { banner: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end start'],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], [0, 80]);
+
+  return (
+    <div ref={ref} className="relative overflow-hidden">
+      {banner ? (
+        <div className="absolute inset-0">
+          <motion.img
+            src={banner}
+            alt=""
+            className="w-full h-full object-cover parallax-banner"
+            style={{ y }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-deep via-ink-deep/85 to-ink-deep/40" />
+        </div>
+      ) : (
+        <div className="absolute inset-0 bg-ink-card" />
+      )}
+      {children}
+    </div>
+  );
+}
+
 function NotInitializedState({
   organizer,
   onManage,
@@ -309,31 +335,66 @@ function OverviewTab({
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 bg-ink-card border border-ink-border rounded p-5">
+      <motion.div
+        className="lg:col-span-2 bg-ink-card border border-ink-border rounded p-5"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-50px' }}
+        transition={{ duration: 0.4 }}
+      >
         <h2 className="text-base uppercase tracking-section font-bold mb-3">Описание</h2>
         <p className="text-sm leading-relaxed whitespace-pre-line text-text-secondary">
           {championship.description || '—'}
         </p>
-      </div>
-      <div className="bg-ink-card border border-ink-border rounded p-5">
+      </motion.div>
+      <motion.div
+        className="bg-ink-card border border-ink-border rounded p-5"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-50px' }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
         <h2 className="text-base uppercase tracking-section font-bold mb-4">Статистика</h2>
         <div className="grid grid-cols-3 gap-3">
-          <Stat label="Команд" value={teamsCount} icon={<Flag size={14} />} />
-          <Stat label="Пилотов" value={driversCount} icon={<Users size={14} />} />
-          <Stat label="Этапов" value={stagesCount} icon={<CalendarDays size={14} />} />
+          <CountUpStat label="Команд" value={teamsCount} icon={<Flag size={14} />} />
+          <CountUpStat label="Пилотов" value={driversCount} icon={<Users size={14} />} />
+          <CountUpStat label="Этапов" value={stagesCount} icon={<CalendarDays size={14} />} />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
-function Stat({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+/** Статистика с анимацией countUp */
+function CountUpStat({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-50px' });
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (!isInView || value === 0) {
+      setDisplay(value);
+      return;
+    }
+    const duration = 600;
+    const start = performance.now();
+    const from = 0;
+    function tick(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(from + (value - from) * eased));
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }, [isInView, value]);
+
   return (
-    <div className="bg-ink-elevated border border-ink-border rounded p-3 flex flex-col items-start">
+    <div ref={ref} className="bg-ink-elevated border border-ink-border rounded p-3 flex flex-col items-start">
       <span className="text-text-secondary flex items-center gap-1 text-[11px] uppercase tracking-badge">
         {icon} {label}
       </span>
-      <span className="text-2xl font-bold tabular mt-1">{value}</span>
+      <span className="text-2xl font-bold tabular mt-1">{display}</span>
     </div>
   );
 }
@@ -349,13 +410,19 @@ function ParticipantsTab({ teams, drivers }: { teams: Team[]; drivers: Driver[] 
     );
   }
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <motion.div
+      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      initial="hidden"
+      animate="visible"
+      variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
+    >
       {teams.map((t) => {
         const teamDrivers = drivers.filter((d) => d.teamId === t.id);
         return (
-          <div
+          <motion.div
             key={t.id}
-            className="bg-ink-card border border-ink-border rounded overflow-hidden hover:border-lime-primary transition"
+            variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+            className="card-hover bg-ink-card border border-ink-border rounded overflow-hidden"
           >
             <div className="flex items-center gap-3 p-4 border-b border-ink-border">
               <span className="w-1.5 h-12 rounded-sm" style={{ backgroundColor: t.color }} />
@@ -380,9 +447,9 @@ function ParticipantsTab({ teams, drivers }: { teams: Team[]; drivers: Driver[] 
                 ))
               )}
             </div>
-          </div>
+          </motion.div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }

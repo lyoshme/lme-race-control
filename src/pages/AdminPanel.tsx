@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   Lock,
   Shield,
@@ -21,6 +22,16 @@ import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
 import type { Championship } from '@/types';
 import { DISCIPLINE_LABELS } from '@/types';
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
 
 export function AdminPanel() {
   const { session, profile, initializing } = useAuth();
@@ -100,12 +111,22 @@ export function AdminPanel() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-display uppercase mb-2 flex items-center gap-2">
+      <motion.h1
+        className="text-2xl sm:text-3xl font-bold tracking-display uppercase mb-2 flex items-center gap-2"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
         <Shield className="text-lime-primary" /> Админ-панель
-      </h1>
-      <p className="text-sm text-text-secondary mb-6">
-        Очередь модерации чемпионатов. Одобрённые появятся на главной странице.
-      </p>
+      </motion.h1>
+      <motion.p
+        className="text-sm text-text-secondary mb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+      >
+        Очередь модерации чемпионатов. Одобренные появятся на главной странице.
+      </motion.p>
 
       {loading ? (
         <div className="flex flex-col gap-4">
@@ -119,10 +140,16 @@ export function AdminPanel() {
           description="Нет чемпионатов, ожидающих модерации."
         />
       ) : (
-        <div className="flex flex-col gap-4">
+        <motion.div
+          className="flex flex-col gap-4"
+          variants={stagger}
+          initial="hidden"
+          animate="visible"
+        >
           {pendingList.map((c) => (
-            <div
+            <motion.div
               key={c.id}
+              variants={item}
               className="bg-ink-card border border-ink-border rounded p-4 flex flex-col sm:flex-row gap-4 sm:items-start"
             >
               <div className="flex-1 min-w-0">
@@ -174,9 +201,9 @@ export function AdminPanel() {
                   title="Управление"
                 />
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
 
       <RejectModal

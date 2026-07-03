@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Flag, LogIn, Moon, Sun } from 'lucide-react';
 import type { Route } from '@/router';
 import { useTheme } from '@/hooks/useTheme';
@@ -16,16 +16,30 @@ export function Header({ goHome, current }: Props) {
   const { theme, toggle } = useTheme();
   const { session, initializing } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-30 bg-ink-deep/90 backdrop-blur border-b border-ink-border">
+    <header
+      className={[
+        'sticky top-0 z-30 border-b transition-all duration-300',
+        scrolled
+          ? 'bg-ink-deep/95 backdrop-blur-xl border-ink-border hero-gradient-border'
+          : 'bg-ink-deep/90 backdrop-blur border-ink-border',
+      ].join(' ')}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
         <button
           onClick={goHome}
           className="flex items-center gap-2 group"
           aria-label="LMERC — на главную"
         >
-          <Flag size={20} className="text-lime-primary" />
+          <Flag size={20} className="text-lime-primary transition-transform duration-300 group-hover:rotate-12" />
           <span className="text-xl font-bold tracking-display group-hover:text-lime-primary transition">
             LMERC
           </span>

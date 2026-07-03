@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+
 interface Tab<K extends string> {
   key: K;
   label: string;
@@ -21,10 +23,10 @@ export function Tabs<K extends string>({ tabs, active, onChange, className = '' 
             key={t.key}
             onClick={() => onChange(t.key)}
             className={[
-              'px-4 py-3 text-xs uppercase tracking-badge transition border-b-2 -mb-px shrink-0 flex items-center gap-2',
+              'relative px-4 py-3 text-xs uppercase tracking-badge transition shrink-0 flex items-center gap-2',
               isActive
-                ? 'text-lime-primary border-lime-primary font-bold'
-                : 'text-text-secondary border-transparent hover:text-text-primary',
+                ? 'text-lime-primary font-bold'
+                : 'text-text-secondary hover:text-text-primary',
             ].join(' ')}
           >
             {t.label}
@@ -32,6 +34,13 @@ export function Tabs<K extends string>({ tabs, active, onChange, className = '' 
               <span className="text-[10px] bg-ink-elevated px-1.5 py-0.5 rounded text-text-secondary">
                 {t.badge}
               </span>
+            )}
+            {isActive && (
+              <motion.div
+                layoutId="tab-indicator"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-lime-primary"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
             )}
           </button>
         );
