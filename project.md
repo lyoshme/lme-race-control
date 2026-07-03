@@ -175,6 +175,27 @@ erDiagram
     CHAMPIONSHIPS ||--o{ STAGES : "проводит"
     TEAMS ||--o{ DRIVERS : "включает"
     STAGES ||--|| SCORING_SYSTEMS : "использует"
+    CHAMPIONSHIPS ||--o{ CHAMPIONSHIP_EDITORS : "назначает"
+    PROFILES ||--o{ CHAMPIONSHIP_EDITORS : "является"
+    CHAMPIONSHIPS ||--o{ CHAMPIONSHIP_INVITES : "создаёт"
+
+    CHAMPIONSHIP_EDITORS {
+        uuid id PK
+        uuid championship_id FK
+        uuid user_id FK
+        boolean can_manage_settings
+        boolean can_manage_teams
+        boolean can_manage_scoring
+        boolean can_manage_stages
+    }
+    CHAMPIONSHIP_INVITES {
+        uuid id PK
+        uuid championship_id FK
+        boolean can_manage_settings
+        boolean can_manage_teams
+        boolean can_manage_scoring
+        boolean can_manage_stages
+    }
 ```
 
 ### Безопасность RLS (Row Level Security)
@@ -187,7 +208,7 @@ erDiagram
     *   Обновление: Только владелец чемпионата (`owner_id = auth.uid()`) или администратор.
 3.  **Другие таблицы** (`teams`, `drivers`, `stages`, `standings`):
     *   Чтение: Публичное (для отображения результатов).
-    *   Запись/Обновление: Только владельцу соответствующего чемпионата (проверяется через `championships.owner_id`) или администратору.
+    *   Запись/Обновление: Владельцу чемпионата, администратору или **назначенному редактору** с соответствующим правом доступа (проверяется через функцию `has_championship_permission`).
 
 ---
 
@@ -227,6 +248,12 @@ flowchart TD
 *   **Edge-функция Vercel** ([[id].ts](file:///c:/Users/Алексей/Desktop/LMERC/api/share/[id].ts)): Перехватывает запросы по адресу `/api/share/[id]`.
 *   **Динамическая генерация OG-тегов**: Функция запрашивает данные о чемпионате из Supabase, на лету формирует HTML с мета-тегами (`og:title`, `og:description`, `og:image`) и отдаёт поисковым роботам и мессенджерам.
 *   **Редирект на клиентский роут**: Обычные пользователи мгновенно перенаправляются на соответствующий хэш-роут (`#/championship/${id}/overview`) с помощью HTTP Refresh заголовка и клиентского JavaScript-скрипта.
+
+### 6. Со-администрирование и приглашения
+Реализована система делегирования прав управления чемпионатом другим пользователям:
+*   **Гибкие права**: Владелец может назначить редактора с разным набором прав: управление настройками, командами/пилотами, системой очков или проведением этапов.
+*   **Инвайты**: Создание уникальных ссылок-приглашений. При переходе по ссылке пользователь видит список предоставляемых прав и может принять приглашение.
+*   **Проверка доступа**: На уровне БД (PostgreSQL) реализована функция `has_championship_permission`, которая атомарно проверяет роль пользователя (Admin $\to$ Owner $\to$ Editor) перед выполнением любой модифицирующей операции.
 
 ---
 

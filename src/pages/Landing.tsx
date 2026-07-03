@@ -35,7 +35,7 @@ export function Landing() {
     <>
       {/* Hero c видео-фоном */}
       <section className="relative border-b border-ink-border overflow-hidden isolate">
-        <HeroVideoBackground src="/hero.mp4" />
+        <HeroVideoBackground src="/newvid.mp4" />
         {/*
           Затемняющий градиент: снизу плавно переходит в основной фон,
           чтобы стык hero ↔ список чемпионатов был незаметен. Слева — скрим
