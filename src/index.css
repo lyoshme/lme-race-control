@@ -283,3 +283,32 @@ body {
 button, input, select, textarea {
   font-family: inherit;
 }
+
+/* Liquid Glass utilities */
+.glass {
+  backdrop-filter: blur(12px);
+  background: rgba(var(--ink-card) / 0.6);
+  border: 1px solid rgba(var(--ink-border) / 0.5);
+}
+
+.glass-strong {
+  backdrop-filter: blur(20px);
+  background: rgba(var(--ink-deep) / 0.7);
+  border-bottom: 1px solid rgba(var(--lime-primary) / 0.2);
+}
+
+.glass-subtle {
+  backdrop-filter: blur(8px);
+  background: rgba(var(--lime-primary) / 0.05);
+  border: 1px solid rgba(var(--lime-primary) / 0.15);
+}
+
+[data-theme="light"] .glass {
+  background: rgba(var(--ink-card) / 0.75);
+}
+[data-theme="light"] .glass-strong {
+  background: rgba(var(--ink-deep) / 0.85);
+}
+[data-theme="light"] .glass-subtle {
+  background: rgba(var(--lime-primary) / 0.08);
+}
