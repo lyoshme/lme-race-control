@@ -27,10 +27,8 @@ export function Header({ goHome, current }: Props) {
   return (
     <header
       className={[
-        'sticky top-0 z-30 border-b transition-all duration-300',
-        scrolled
-          ? 'bg-ink-deep/95 backdrop-blur-xl border-ink-border hero-gradient-border'
-          : 'bg-ink-deep/90 backdrop-blur border-ink-border',
+        'sticky top-0 z-30 glass-strong transition-all duration-300',
+        scrolled ? 'hero-gradient-border' : '',
       ].join(' ')}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
