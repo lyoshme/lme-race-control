@@ -17,7 +17,7 @@ const variantClass: Record<Variant, string> = {
   primary:
     'bg-lime-primary text-ink-deep hover:bg-lime-dark disabled:opacity-40 disabled:cursor-not-allowed font-bold',
   secondary:
-    'bg-ink-elevated text-text-primary border border-ink-border hover:border-lime-primary hover:text-lime-primary disabled:opacity-40 disabled:cursor-not-allowed',
+    'glass-subtle text-text-primary hover:border-lime-primary hover:text-lime-primary disabled:opacity-40 disabled:cursor-not-allowed',
   ghost:
     'bg-transparent text-text-secondary hover:text-text-primary hover:bg-ink-elevated disabled:opacity-40 disabled:cursor-not-allowed',
   danger:
