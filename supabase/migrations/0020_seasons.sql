@@ -98,15 +98,15 @@ END $$;
 -- 4. season_id NOT NULL (если ещё nullable)
 -- ----------------------------------------------------------------------------
 DO $$ BEGIN ALTER TABLE teams ALTER COLUMN season_id SET NOT NULL;
-EXCEPTION WHEN NOT NULL THEN NULL; END $$;
+EXCEPTION WHEN not_null_violation THEN NULL; END $$;
 DO $$ BEGIN ALTER TABLE drivers ALTER COLUMN season_id SET NOT NULL;
-EXCEPTION WHEN NOT NULL THEN NULL; END $$;
+EXCEPTION WHEN not_null_violation THEN NULL; END $$;
 DO $$ BEGIN ALTER TABLE scoring_systems ALTER COLUMN season_id SET NOT NULL;
-EXCEPTION WHEN NOT NULL THEN NULL; END $$;
+EXCEPTION WHEN not_null_violation THEN NULL; END $$;
 DO $$ BEGIN ALTER TABLE stages ALTER COLUMN season_id SET NOT NULL;
-EXCEPTION WHEN NOT NULL THEN NULL; END $$;
+EXCEPTION WHEN not_null_violation THEN NULL; END $$;
 DO $$ BEGIN ALTER TABLE standings ALTER COLUMN season_id SET NOT NULL;
-EXCEPTION WHEN NOT NULL THEN NULL; END $$;
+EXCEPTION WHEN not_null_violation THEN NULL; END $$;
 
 -- ----------------------------------------------------------------------------
 -- 5. Индексы для фильтрации по сезону
