@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { CountryFlag } from '@/components/ui/CountryFlag';
+import { useRouter } from '@/router';
 import type { Driver, Stage, Standings, Team } from '@/types';
 
 interface Props {
@@ -8,9 +9,11 @@ interface Props {
   teams: Team[];
   standings: Standings | null;
   stages?: Stage[];
+  championshipId: string;
 }
 
-export function DriversTable({ drivers, teams, standings, stages = [] }: Props) {
+export function DriversTable({ drivers, teams, standings, stages = [], championshipId }: Props) {
+  const { goDriverProfile } = useRouter();
   const teamMap = new Map(teams.map((t) => [t.id, t]));
 
   function avgPosition(driverId: string): number {
@@ -24,8 +27,6 @@ export function DriversTable({ drivers, teams, standings, stages = [] }: Props) 
     return positions.reduce((a, b) => a + b, 0) / positions.length;
   }
 
-  // Только пилоты, попавшие в standings (если standings инициализированы),
-  // иначе все пилоты с нулями.
   const rows = drivers
     .map((d) => {
       const row = standings?.driverPoints[d.id];
@@ -66,12 +67,8 @@ export function DriversTable({ drivers, teams, standings, stages = [] }: Props) 
             <th className="text-left px-3 py-3">Пилот</th>
             <th className="text-left px-3 py-3 hidden sm:table-cell">Команда</th>
             <th className="text-right px-3 py-3 tabular w-20">Очки</th>
-            <th className="text-right px-3 py-3 tabular w-20 hidden md:table-cell">
-              Победы
-            </th>
-            <th className="text-right px-3 py-3 tabular w-24 hidden md:table-cell">
-              Подиумы
-            </th>
+            <th className="text-right px-3 py-3 tabular w-20 hidden md:table-cell">Победы</th>
+            <th className="text-right px-3 py-3 tabular w-24 hidden md:table-cell">Подиумы</th>
           </tr>
         </thead>
         <motion.tbody layout>
@@ -88,18 +85,14 @@ export function DriversTable({ drivers, teams, standings, stages = [] }: Props) 
                 exit={{ opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                 className={[
-                  'border-t border-ink-border',
+                  'border-t border-ink-border cursor-pointer',
                   idx % 2 === 0 ? 'bg-ink-card' : 'bg-ink-elevated',
                   'hover:bg-ink-surface',
                 ].join(' ')}
+                onClick={() => goDriverProfile(championshipId, r.driver.id)}
               >
                 <td className="px-3 py-3">
-                  <span
-                    className={[
-                      'inline-block tabular font-bold',
-                      isTop3 ? 'text-lime-primary text-2xl leading-none' : 'text-text-secondary text-lg leading-none',
-                    ].join(' ')}
-                  >
+                  <span className={['inline-block tabular font-bold', isTop3 ? 'text-lime-primary text-2xl leading-none' : 'text-text-secondary text-lg leading-none'].join(' ')}>
                     {place}
                   </span>
                 </td>
@@ -108,23 +101,14 @@ export function DriversTable({ drivers, teams, standings, stages = [] }: Props) 
                     <Avatar src={r.driver.photo} name={`${r.driver.firstName} ${r.driver.lastName}`} size={32} />
                     <div className="min-w-0">
                       <div className="text-sm truncate flex items-center gap-1.5">
-                        <span className="text-text-secondary tabular text-xs">
-                          #{r.driver.number}
-                        </span>
-                        <span className="font-bold">
-                          {r.driver.firstName} {r.driver.lastName}
-                        </span>
-                        {r.driver.country && (
-                          <CountryFlag code={r.driver.country} size={12} />
-                        )}
+                        <span className="text-text-secondary tabular text-xs">#{r.driver.number}</span>
+                        <span className="font-bold hover:text-lime-primary transition">{r.driver.firstName} {r.driver.lastName}</span>
+                        {r.driver.country && <CountryFlag code={r.driver.country} size={12} />}
                       </div>
                       <div className="text-[11px] text-text-muted sm:hidden flex items-center gap-1.5">
                         {r.team && (
                           <>
-                            <span
-                              className="inline-block w-2 h-2 rounded-sm"
-                              style={{ backgroundColor: r.team.color }}
-                            />
+                            <span className="inline-block w-2 h-2 rounded-sm" style={{ backgroundColor: r.team.color }} />
                             {r.team.name}
                           </>
                         )}
@@ -135,10 +119,7 @@ export function DriversTable({ drivers, teams, standings, stages = [] }: Props) 
                 <td className="px-3 py-3 hidden sm:table-cell">
                   {r.team ? (
                     <div className="flex items-center gap-2">
-                      <span
-                        className="inline-block w-1 h-6 rounded-sm"
-                        style={{ backgroundColor: r.team.color }}
-                      />
+                      <span className="inline-block w-1 h-6 rounded-sm" style={{ backgroundColor: r.team.color }} />
                       <span className="text-sm">{r.team.name}</span>
                     </div>
                   ) : (
@@ -146,12 +127,8 @@ export function DriversTable({ drivers, teams, standings, stages = [] }: Props) 
                   )}
                 </td>
                 <td className="px-3 py-3 text-right tabular font-bold">{r.points}</td>
-                <td className="px-3 py-3 text-right tabular text-text-secondary hidden md:table-cell">
-                  {r.wins}
-                </td>
-                <td className="px-3 py-3 text-right tabular text-text-secondary hidden md:table-cell">
-                  {r.podiums}
-                </td>
+                <td className="px-3 py-3 text-right tabular text-text-secondary hidden md:table-cell">{r.wins}</td>
+                <td className="px-3 py-3 text-right tabular text-text-secondary hidden md:table-cell">{r.podiums}</td>
               </motion.tr>
             );
           })}

@@ -9,6 +9,7 @@ import { ChampionshipManage } from '@/pages/ChampionshipManage';
 import { Account } from '@/pages/Account';
 import { AdminPanel } from '@/pages/AdminPanel';
 import { InviteAccept } from '@/pages/InviteAccept';
+import { DriverProfile } from '@/pages/DriverProfile';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 function ConfigWarning() {
@@ -40,6 +41,9 @@ function Router() {
           <ChampionshipManage championshipId={route.championshipId} tab={route.tab} />
         )}
         {route.view === 'invite' && <InviteAccept inviteId={route.inviteId} />}
+        {route.view === 'driverProfile' && (
+          <DriverProfile championshipId={route.championshipId} driverId={route.driverId} />
+        )}
       </main>
       <footer className="border-t border-ink-border py-6 text-center text-xs text-text-muted uppercase tracking-badge">
         LMERC © {new Date().getFullYear()}

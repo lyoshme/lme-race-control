@@ -14,6 +14,17 @@ export async function listApproved(): Promise<Championship[]> {
     .eq('status', 'approved')
     .order('approved_at', { ascending: false });
   if (error) throw error;
+  return (data ?? []).map(rowToChampionship).filter((c) => !c.isHidden);
+}
+
+/** Все одобренные чемпионаты (включая скрытые) — для админ-панели. */
+export async function listAllApproved(): Promise<Championship[]> {
+  const { data, error } = await supabase
+    .from('championships')
+    .select('*')
+    .eq('status', 'approved')
+    .order('approved_at', { ascending: false });
+  if (error) throw error;
   return (data ?? []).map(rowToChampionship);
 }
 
@@ -103,6 +114,27 @@ export async function reject(id: string, reason: string): Promise<Championship> 
   const { data, error } = await supabase
     .from('championships')
     .update({ status: 'rejected', rejection_reason: reason } as never)
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return rowToChampionship(data);
+}
+
+/** Переключить видимость турнира. */
+export async function toggleHidden(id: string): Promise<Championship> {
+  const { data: current, error: readErr } = await supabase
+    .from('championships')
+    .select('is_hidden')
+    .eq('id', id)
+    .single();
+  if (readErr) throw readErr;
+
+  const nextHidden = !((current as any)?.is_hidden ?? false);
+
+  const { data, error } = await supabase
+    .from('championships')
+    .update({ is_hidden: nextHidden } as never)
     .eq('id', id)
     .select('*')
     .single();

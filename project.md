@@ -35,7 +35,11 @@ LMERC/
 │       └── [id].ts         # Edge-функция для генерации Open Graph мета-тегов
 ├── supabase/
 │   └── migrations/
-│       └── 0001_init.sql   # SQL-миграция для инициализации БД
+│       ├── 0001_init.sql       # Инициализация: таблицы + RLS + триггеры
+│       ├── 0002_editors.sql    # Редакторы + инвайты + has_championship_permission
+│       ├── 0003_security_fixes.sql  # Ограничение чтения профилей и инвайтов
+│       ├── 0004_admin_features.sql  # is_hidden + toggle_championship_hidden
+│       └── 0010_remove_duplicates.sql  # Удаление дублей команд и пилотов
 └── src/
     ├── App.tsx             # Корневой компонент (Toast → Auth → Router)
     ├── main.tsx            # Точка входа (applyInitialTheme + React root)
@@ -44,9 +48,9 @@ LMERC/
     ├── index.css           # Глобальные стили и CSS-переменные тем
     ├── vite-env.d.ts       # Типы Vite
     ├── components/         # Общие компоненты интерфейса
-    │   ├── layout/         # Header, HeroVideoBackground, Footer
+    │   ├── layout/         # Header, HeroVideoBackground
     │   ├── toast/          # ToastContext — всплывающие уведомления
-    │   └── ui/             # Button, Input, Modal, Avatar, Crop, Skeleton, ConfirmDialog и др.
+    │   └── ui/             # Button, Input, Modal, Avatar, Badge, Tabs, ColorPicker, Skeleton, EmptyState, ConfirmDialog, FileDropzone, ImageCropper, CountrySelect, CountryFlag
     ├── hooks/              # Пользовательские хуки
     │   ├── useAuth.ts      # Сессия, вход/выход, профиль
     │   ├── useTheme.ts     # Переключение тем dark/light (localStorage)
@@ -85,6 +89,7 @@ LMERC/
         ├── AdminPanel.tsx          # Панель администратора (модерация)
         ├── ChampionshipPublic.tsx  # Публичная страница чемпионата
         ├── ChampionshipManage.tsx  # Панель управления чемпионатом
+        ├── DriverProfile.tsx       # Профиль пилота (статистика + результаты)
         └── InviteAccept.tsx        # Приём приглашения редактора
 ```
 
@@ -100,6 +105,7 @@ LMERC/
 | `#/invite/:id` | InviteAccept | — |
 | `#/championship/:id/:tab` | ChampionshipPublic | overview, drivers, teams, participants, stages |
 | `#/championship/:id/manage/:tab` | ChampionshipManage | settings, teams, scoring, standings, stages, editors |
+| `#/championship/:id/driver/:driverId` | DriverProfile | — |
 
 ---
 
@@ -160,6 +166,7 @@ erDiagram
         string lifecycle
         string status
         text rejection_reason
+        boolean is_hidden
         timestamp approved_at
         timestamp created_at
     }
@@ -241,7 +248,7 @@ erDiagram
 
 ### Политики RLS
 1. **Profiles**: чтение — все аутентифицированные; запись — только владелец.
-2. **Championships**: чтение — `approved` публично + владелец + админ; запись — владелец или админ.
+2. **Championships**: чтение — `approved` публично + владелец + админ; скрытые (`is_hidden`) не показываются в публичной ленте; запись — владелец или админ. Функция `toggle_championship_hidden` (админ).
 3. **Teams/Drivers/Stages/Standings/Scoring**: чтение — публичное; запись — владелец чемпионата, админ или редактор с соответствующим правом (проверка через `has_championship_permission`).
 
 ---
@@ -255,6 +262,10 @@ erDiagram
 ### 2. Модерация чемпионатов
 - При создании статус `pending` → админ одобряет (`approved`) или отклоняет (`rejected` с причиной).
 - На главной — только одобренные чемпионаты.
+
+### 2.1 Скрытые турниры (админ)
+- Админ может скрывать одобренные турниры из публичной ленты через `toggle_championship_hidden`.
+- Скрытые турниры доступны по прямой ссылке владельцу/админу.
 
 ### 3. Управление командами и пилотами (DnD)
 - Drag-and-Drop через `@dnd-kit`: пилоты перетаскиваются между командами и в зону «Без команды».
@@ -291,7 +302,7 @@ flowchart TD
 
 | Модуль | Описание |
 | :--- | :--- |
-| `championships.ts` | CRUD чемпионатов, фильтрация по статусу модерации |
+| `championships.ts` | CRUD чемпионатов, `listApproved` (публичные) vs `listAllApproved` (админ), фильтрация по статусу модерации |
 | `teams.ts` | CRUD команд |
 | `drivers.ts` | CRUD пилотов |
 | `scoring.ts` | CRUD систем начисления очков |
@@ -324,7 +335,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 1. `npm install`
 2. Скопировать `.env.example` в `.env`, заполнить ключи Supabase
-3. SQL Editor → выполнить `supabase/migrations/0001_init.sql`
+3. SQL Editor → выполнить миграции по порядку: `0001_init.sql`, `0002_editors.sql`, `0003_security_fixes.sql`, `0004_admin_features.sql`, `0010_remove_duplicates.sql`
 4. Supabase Storage → создать публичные бакеты: `banners`, `logos`, `photos`
 5. Supabase → Replication → включить Realtime для: `championships`, `teams`, `drivers`, `scoring_systems`, `standings`, `stages`
 6. `npm run dev` → http://localhost:5173
@@ -380,6 +391,16 @@ UPDATE public.profiles SET is_admin = true WHERE email = 'твой@email';
 - Личный кабинет с бейджами статуса
 - Шаринг + OG-теги через Edge Function
 - Удалены `lib/data.ts` и `useStorage.ts` (теперь только Supabase)
+
+### Итерация 4
+- Профиль пилота: hero-секция с фото, именем, страной, командой и фоновым номером
+- Статистика сезона: очки, победы, подиумы, средняя и лучшая позиция
+- Таблица результатов по этапам с датами, трассами, позициями и бонусами (Pole/FL)
+- Маршрут `#/championship/:id/driver/:driverId`
+
+### Итерация 5
+- Скрытые турниры (админ): `is_hidden` колонка + `toggle_championship_hidden` RPC
+- Утилита удаления дублей команд и пилотов (`0010_remove_duplicates.sql`)
 
 ---
 
