@@ -34,6 +34,7 @@ export interface Season {
   championshipId: string;
   name: string;
   isActive: boolean;
+  finishedAt: number | null;
   createdAt: number;
 }
 

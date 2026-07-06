@@ -40,6 +40,7 @@ export interface SeasonRow {
   championship_id: string;
   name: string;
   is_active: boolean;
+  finished_at: string | null;
   created_at: string;
 }
 

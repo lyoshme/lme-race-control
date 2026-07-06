@@ -71,7 +71,10 @@ export function SeasonSelector({
                 ].join(' ')}
               >
                 <span>{s.name}</span>
-                {s.isActive && <span className="text-[10px] uppercase tracking-badge text-lime-muted">активный</span>}
+                <span className="flex items-center gap-2">
+                  {s.isActive && <span className="text-[10px] uppercase tracking-badge text-lime-muted">активный</span>}
+                  {s.finishedAt !== null && <span className="text-[10px] uppercase tracking-badge text-text-muted">завершён</span>}
+                </span>
               </button>
             ))}
             {canManage && (

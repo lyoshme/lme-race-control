@@ -13,6 +13,13 @@ export async function list(championshipId: string): Promise<Season[]> {
 }
 
 export async function create(championshipId: string, name: string): Promise<Season> {
+  // Завершить предыдущий активный сезон
+  await supabase
+    .from('seasons')
+    .update({ is_active: false, finished_at: new Date().toISOString() } as never)
+    .eq('championship_id', championshipId)
+    .eq('is_active', true);
+
   const { data, error } = await supabase
     .from('seasons')
     .insert(seasonToInsert({ championshipId, name }) as never)
@@ -30,7 +37,7 @@ export async function setActive(id: string, championshipId: string): Promise<voi
 
   const { error } = await supabase
     .from('seasons')
-    .update({ is_active: true } as never)
+    .update({ is_active: true, finished_at: null } as never)
     .eq('id', id);
   if (error) throw error;
 }
@@ -39,6 +46,14 @@ export async function update(id: string, name: string): Promise<void> {
   const { error } = await supabase
     .from('seasons')
     .update({ name } as never)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function finish(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('seasons')
+    .update({ is_active: false, finished_at: new Date().toISOString() } as never)
     .eq('id', id);
   if (error) throw error;
 }

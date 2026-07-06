@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Check, Pencil, Plus, Trash2, Trophy, X } from 'lucide-react';
+import { Check, Flag, Pencil, Plus, Trash2, Trophy, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -20,6 +20,7 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [finishingId, setFinishingId] = useState<string | null>(null);
   const editRef = useRef<HTMLInputElement>(null);
 
   const fetcher = useCallback(() => api.seasons.list(championshipId), [championshipId]);
@@ -37,7 +38,7 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
       const season = await api.seasons.create(championshipId, name);
       await api.seasons.setActive(season.id, championshipId);
       onSeasonChange(season.id);
-      toast.success(`Сезон «${season.name}» создан и активирован`);
+      toast.success(`Сезон «${season.name}» создан`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Не удалось создать сезон');
     } finally {
@@ -46,13 +47,23 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
   }
 
   async function handleSetActive(season: Season) {
-    if (season.isActive || editingId === season.id) return;
+    if (season.isActive || editingId === season.id || season.finishedAt !== null) return;
     try {
       await api.seasons.setActive(season.id, championshipId);
       onSeasonChange(season.id);
       toast.success(`Сезон «${season.name}» активирован`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Не удалось активировать сезон');
+    }
+  }
+
+  async function handleFinish(season: Season) {
+    try {
+      await api.seasons.finish(season.id);
+      toast.success(`Сезон «${season.name}» завершён`);
+      setFinishingId(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось завершить сезон');
     }
   }
 
@@ -89,7 +100,7 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
       if (season.id === currentSeasonId) {
         const remaining = seasons.filter((s) => s.id !== season.id);
         if (remaining.length > 0) {
-          const newActive = remaining[remaining.length - 1];
+          const newActive = remaining.find((s) => s.finishedAt === null) ?? remaining[remaining.length - 1];
           await api.seasons.setActive(newActive.id, championshipId);
           onSeasonChange(newActive.id);
         } else {
@@ -139,6 +150,7 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
         {seasons.map((s) => {
           const isEditing = editingId === s.id;
           const isCurrent = s.id === currentSeasonId;
+          const isFinished = s.finishedAt !== null;
 
           return (
             <div
@@ -148,18 +160,18 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
                 isCurrent ? 'bg-ink-elevated' : 'hover:bg-ink-elevated/50',
               ].join(' ')}
             >
-              {/* Активировать */}
+              {/* Активировать / Инфо */}
               <button
                 onClick={() => handleSetActive(s)}
-                disabled={isEditing}
+                disabled={isEditing || isFinished}
                 className={[
                   'flex-1 text-left px-4 py-3 flex items-center gap-3',
-                  isEditing ? 'cursor-default' : 'cursor-pointer',
+                  isEditing || isFinished ? 'cursor-default' : 'cursor-pointer',
                 ].join(' ')}
               >
                 <Trophy
                   size={16}
-                  className={isCurrent ? 'text-lime-primary' : 'text-text-muted'}
+                  className={isCurrent ? 'text-lime-primary' : isFinished ? 'text-text-muted' : 'text-text-muted'}
                 />
                 {isEditing ? (
                   <input
@@ -173,11 +185,18 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
                     className="flex-1 bg-transparent border-b border-lime-primary/40 text-sm font-bold text-text-primary outline-none py-0.5"
                   />
                 ) : (
-                  <span className="text-sm font-bold text-text-primary">{s.name}</span>
+                  <span className={`text-sm font-bold ${isFinished ? 'text-text-secondary' : 'text-text-primary'}`}>
+                    {s.name}
+                  </span>
                 )}
                 {isCurrent && !isEditing && (
                   <span className="text-[10px] uppercase tracking-badge text-lime-muted">
                     активный
+                  </span>
+                )}
+                {isFinished && !isEditing && (
+                  <span className="text-[10px] uppercase tracking-badge text-text-muted">
+                    завершён
                   </span>
                 )}
               </button>
@@ -203,6 +222,16 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
                   </>
                 ) : (
                   <>
+                    {/* Завершить — только для активного сезона */}
+                    {isCurrent && !isFinished && (
+                      <button
+                        onClick={() => setFinishingId(s.id)}
+                        className="p-1.5 rounded text-text-secondary hover:text-lime-primary hover:bg-lime-primary/10 transition"
+                        title="Завершить сезон"
+                      >
+                        <Flag size={14} />
+                      </button>
+                    )}
                     <button
                       onClick={() => startEdit(s)}
                       className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-ink-surface transition"
@@ -240,6 +269,22 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
         }
         confirmLabel="Удалить"
         destructive
+      />
+
+      <ConfirmDialog
+        open={finishingId !== null}
+        onCancel={() => setFinishingId(null)}
+        onConfirm={() => {
+          const s = seasons.find((x) => x.id === finishingId);
+          if (s) handleFinish(s);
+        }}
+        title="Завершить сезон?"
+        message={
+          finishingId
+            ? `Сезон «${seasons.find((x) => x.id === finishingId)?.name}» будет отмечен как завершённый. Создайте новый сезон для продолжения.`
+            : ''
+        }
+        confirmLabel="Завершить"
       />
     </div>
   );

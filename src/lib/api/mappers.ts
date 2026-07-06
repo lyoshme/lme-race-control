@@ -86,6 +86,7 @@ export function rowToSeason(r: SeasonRow): Season {
     championshipId: r.championship_id,
     name: r.name,
     isActive: r.is_active,
+    finishedAt: r.finished_at ? new Date(r.finished_at).getTime() : null,
     createdAt: new Date(r.created_at).getTime(),
   };
 }
