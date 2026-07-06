@@ -303,6 +303,10 @@ button, input, select, textarea {
   border: 1px solid rgba(var(--lime-primary) / 0.15);
 }
 
+.glass-subtle:hover {
+  background: rgba(var(--lime-primary) / 0.15);
+}
+
 [data-theme="light"] .glass {
   background: rgba(var(--ink-card) / 0.75);
 }
@@ -311,4 +315,8 @@ button, input, select, textarea {
 }
 [data-theme="light"] .glass-subtle {
   background: rgba(var(--lime-primary) / 0.08);
+}
+
+[data-theme="light"] .glass-subtle:hover {
+  background: rgba(var(--lime-primary) / 0.18);
 }
