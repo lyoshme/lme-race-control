@@ -113,6 +113,7 @@ export function StandingsInitTab({ championshipId, permissions }: Props) {
 
     const s: Standings = {
       championshipId,
+      seasonId: '',
       initialized: true,
       selectedTeamIds: selectedTeams.map((t) => t.id),
       driverPoints,
@@ -194,7 +195,7 @@ export function StandingsInitTab({ championshipId, permissions }: Props) {
             <div className="px-4 py-3 border-b border-ink-border">
               <h3 className="text-sm uppercase tracking-badge font-bold">Пилоты</h3>
             </div>
-            <DriversTable drivers={drivers} teams={teams} standings={standings} stages={stages} />
+            <DriversTable drivers={drivers} teams={teams} standings={standings} stages={stages} championshipId={championshipId} />
           </div>
           <div className="bg-ink-card border border-ink-border rounded overflow-hidden">
             <div className="px-4 py-3 border-b border-ink-border">

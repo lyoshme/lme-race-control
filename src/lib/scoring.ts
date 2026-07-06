@@ -35,6 +35,7 @@ export function makeScoringFromPreset(
   return {
     id: uuid(),
     championshipId,
+    seasonId: '',
     name: preset.label,
     points: [...preset.points],
     bonusPole: 0,

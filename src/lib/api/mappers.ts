@@ -37,6 +37,7 @@ export function rowToChampionship(r: ChampionshipRow): Championship {
     moderationStatus: r.status,
     rejectionReason: r.rejection_reason ?? undefined,
     approvedAt: r.approved_at ? new Date(r.approved_at).getTime() : undefined,
+    isHidden: r.is_hidden ?? false,
   };
 }
 
@@ -72,6 +73,7 @@ export function championshipToUpdate(
   if (patch.season !== undefined) out.season = patch.season;
   if (patch.banner !== undefined) out.banner_url = patch.banner || null;
   if (patch.status !== undefined) out.lifecycle = patch.status;
+  if (patch.isHidden !== undefined) out.is_hidden = patch.isHidden;
   return out;
 }
 
@@ -80,6 +82,7 @@ export function rowToTeam(r: TeamRow): Team {
   return {
     id: r.id,
     championshipId: r.championship_id,
+    seasonId: r.season_id,
     name: r.name,
     color: r.color,
     logo: r.logo_url ?? '',
@@ -90,6 +93,7 @@ export function rowToTeam(r: TeamRow): Team {
 export function teamToInsert(t: Omit<Team, 'id'>): Partial<TeamRow> {
   return {
     championship_id: t.championshipId,
+    season_id: t.seasonId,
     name: t.name,
     color: t.color,
     logo_url: t.logo || null,
@@ -111,6 +115,7 @@ export function rowToDriver(r: DriverRow): Driver {
   return {
     id: r.id,
     championshipId: r.championship_id,
+    seasonId: r.season_id,
     teamId: r.team_id,
     firstName: r.first_name,
     lastName: r.last_name,
@@ -123,6 +128,7 @@ export function rowToDriver(r: DriverRow): Driver {
 export function driverToInsert(d: Omit<Driver, 'id'>): Partial<DriverRow> {
   return {
     championship_id: d.championshipId,
+    season_id: d.seasonId,
     team_id: d.teamId,
     first_name: d.firstName,
     last_name: d.lastName,
@@ -148,6 +154,7 @@ export function rowToScoring(r: ScoringSystemRow): ScoringSystem {
   return {
     id: r.id,
     championshipId: r.championship_id,
+    seasonId: r.season_id,
     name: r.name,
     points: r.points ?? [],
     bonusPole: r.bonus_pole ?? 0,
@@ -160,6 +167,7 @@ export function scoringToInsert(
 ): Partial<ScoringSystemRow> {
   return {
     championship_id: s.championshipId,
+    season_id: s.seasonId,
     name: s.name,
     points: s.points,
     bonus_pole: s.bonusPole,
@@ -183,6 +191,7 @@ export function scoringToUpdate(
 export function rowToStandings(r: StandingsRow): Standings {
   return {
     championshipId: r.championship_id,
+    seasonId: r.season_id,
     initialized: r.initialized,
     selectedTeamIds: r.selected_team_ids ?? [],
     driverPoints: r.driver_points ?? {},
@@ -193,6 +202,7 @@ export function rowToStandings(r: StandingsRow): Standings {
 export function standingsToUpsert(s: Standings): Partial<StandingsRow> {
   return {
     championship_id: s.championshipId,
+    season_id: s.seasonId,
     initialized: s.initialized,
     selected_team_ids: s.selectedTeamIds,
     driver_points: s.driverPoints,
@@ -205,6 +215,7 @@ export function rowToStage(r: StageRow): Stage {
   return {
     id: r.id,
     championshipId: r.championship_id,
+    seasonId: r.season_id,
     name: r.name,
     track: r.track,
     date: r.stage_date,
@@ -219,6 +230,7 @@ export function rowToStage(r: StageRow): Stage {
 export function stageToInsert(s: Omit<Stage, 'id' | 'createdAt'>): Partial<StageRow> {
   return {
     championship_id: s.championshipId,
+    season_id: s.seasonId,
     name: s.name,
     track: s.track,
     stage_date: s.date,

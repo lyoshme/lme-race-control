@@ -26,11 +26,21 @@ export interface Championship {
   moderationStatus?: ChampionshipModerationStatus;
   rejectionReason?: string;
   approvedAt?: number;
+  isHidden?: boolean;
+}
+
+export interface Season {
+  id: string;
+  championshipId: string;
+  name: string;
+  isActive: boolean;
+  createdAt: number;
 }
 
 export interface Team {
   id: string;
   championshipId: string;
+  seasonId: string;
   name: string;
   logo: string; // base64 или ''
   color: string; // hex
@@ -40,6 +50,7 @@ export interface Team {
 export interface Driver {
   id: string;
   championshipId: string;
+  seasonId: string;
   teamId: string | null;
   firstName: string;
   lastName: string;
@@ -53,6 +64,7 @@ export type StageType = 'race' | 'qualifying' | 'sprint';
 export interface ScoringSystem {
   id: string;
   championshipId: string;
+  seasonId: string;
   name: string;
   points: number[]; // позиция 1 → points[0]
   bonusPole: number;
@@ -67,6 +79,7 @@ export interface DriverPointsRow {
 
 export interface Standings {
   championshipId: string;
+  seasonId: string;
   initialized: boolean;
   selectedTeamIds: string[];
   driverPoints: Record<string, DriverPointsRow>;
@@ -90,6 +103,7 @@ export interface StageResultRow {
 export interface Stage {
   id: string;
   championshipId: string;
+  seasonId: string;
   name: string;
   track: string;
   date: string; // YYYY-MM-DD

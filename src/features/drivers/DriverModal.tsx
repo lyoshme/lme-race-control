@@ -78,6 +78,7 @@ export function DriverModal({
       const newTeamId = teamId || null;
       const payload = {
         championshipId,
+        seasonId: '',
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         number: number.trim(),

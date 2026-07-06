@@ -57,6 +57,7 @@ export function TeamModal({ open, onClose, championshipId, team }: Props) {
       } else {
         await api.teams.create({
           championshipId,
+          seasonId: '',
           name: name.trim(),
           logo: logoUrl,
           color,
