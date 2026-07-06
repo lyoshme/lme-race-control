@@ -16,6 +16,16 @@ CREATE TABLE IF NOT EXISTS seasons (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Добавить is_active если таблица была создана без неё
+DO $$ BEGIN
+  ALTER TABLE seasons ADD COLUMN is_active boolean NOT NULL DEFAULT true;
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
+-- Добавить created_at если таблица была создана без неё
+DO $$ BEGIN
+  ALTER TABLE seasons ADD COLUMN created_at timestamptz NOT NULL DEFAULT now();
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
 -- Индексы (IF NOT EXISTS)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_seasons_one_active
   ON seasons(championship_id)
