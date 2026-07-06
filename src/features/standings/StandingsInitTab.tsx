@@ -14,28 +14,29 @@ import { TeamsTable } from './TeamsTable';
 
 interface Props {
   championshipId: string;
+  seasonId: string;
   permissions?: EditorPermissions;
 }
 
-export function StandingsInitTab({ championshipId, permissions }: Props) {
+export function StandingsInitTab({ championshipId, seasonId, permissions }: Props) {
   const canWrite = permissions?.canManageStages ?? true;
   const toast = useToast();
 
   const teamsFetcher = useCallback(
-    () => api.teams.list(championshipId),
-    [championshipId],
+    () => api.teams.list(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const driversFetcher = useCallback(
-    () => api.drivers.list(championshipId),
-    [championshipId],
+    () => api.drivers.list(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const standingsFetcher = useCallback(
-    () => api.standings.get(championshipId),
-    [championshipId],
+    () => api.standings.get(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const stagesFetcher = useCallback(
-    () => api.stages.list(championshipId),
-    [championshipId],
+    () => api.stages.list(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const teamsQ = useSupabaseQuery<Team[]>(
     teamsFetcher,
@@ -140,7 +141,7 @@ export function StandingsInitTab({ championshipId, permissions }: Props) {
     await reset();
     // Удаляем все этапы чемпионата
     try {
-      const stages = await api.stages.list(championshipId);
+      const stages = await api.stages.list(championshipId, seasonId);
       await Promise.all(stages.map((s) => api.stages.remove(s.id)));
     } catch (e) {
       // не критично

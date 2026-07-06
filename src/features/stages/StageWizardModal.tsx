@@ -22,6 +22,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   championshipId: string;
+  seasonId: string;
 }
 
 type Step = 1 | 2 | 3 | 4;
@@ -39,7 +40,7 @@ const TYPE_LABELS: Record<StageType, string> = {
   sprint: 'Спринт',
 };
 
-export function StageWizardModal({ open, onClose, championshipId }: Props) {
+export function StageWizardModal({ open, onClose, championshipId, seasonId }: Props) {
   const toast = useToast();
 
   // Данные чемпионата
@@ -74,10 +75,10 @@ export function StageWizardModal({ open, onClose, championshipId }: Props) {
     void (async () => {
       try {
         const [t, d, sc, st] = await Promise.all([
-          api.teams.list(championshipId),
-          api.drivers.list(championshipId),
-          api.scoring.list(championshipId),
-          api.standings.get(championshipId),
+          api.teams.list(championshipId, seasonId),
+          api.drivers.list(championshipId, seasonId),
+          api.scoring.list(championshipId, seasonId),
+          api.standings.get(championshipId, seasonId),
         ]);
         if (!alive) return;
         setTeams(t);

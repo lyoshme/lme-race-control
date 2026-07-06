@@ -30,22 +30,23 @@ const ORPHANS_ID = '__orphans__';
 
 interface Props {
   championshipId: string;
+  seasonId: string;
   permissions: {
     canManageTeams: boolean;
     isOwner: boolean;
   };
 }
 
-export function TeamsTab({ championshipId, permissions }: Props) {
+export function TeamsTab({ championshipId, seasonId, permissions }: Props) {
   const toast = useToast();
 
   const teamsFetcher = useCallback(
-    () => api.teams.list(championshipId),
-    [championshipId],
+    () => api.teams.list(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const driversFetcher = useCallback(
-    () => api.drivers.list(championshipId),
-    [championshipId],
+    () => api.drivers.list(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const teamsQ = useSupabaseQuery<Team[]>(
     teamsFetcher,

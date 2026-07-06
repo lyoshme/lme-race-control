@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
-import { Plus, Trophy } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
+import { Check, Pencil, Plus, Trash2, Trophy, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/components/toast/ToastContext';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
@@ -16,6 +17,10 @@ interface Props {
 export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: Props) {
   const toast = useToast();
   const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const editRef = useRef<HTMLInputElement>(null);
 
   const fetcher = useCallback(() => api.seasons.list(championshipId), [championshipId]);
   const { data: seasonsData } = useSupabaseQuery<Season[]>(
@@ -41,13 +46,60 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
   }
 
   async function handleSetActive(season: Season) {
-    if (season.isActive) return;
+    if (season.isActive || editingId === season.id) return;
     try {
       await api.seasons.setActive(season.id, championshipId);
       onSeasonChange(season.id);
       toast.success(`Сезон «${season.name}» активирован`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Не удалось активировать сезон');
+    }
+  }
+
+  function startEdit(season: Season) {
+    setEditingId(season.id);
+    setEditValue(season.name);
+    setTimeout(() => editRef.current?.focus(), 0);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditValue('');
+  }
+
+  async function saveEdit(id: string) {
+    const trimmed = editValue.trim();
+    if (!trimmed) {
+      toast.error('Имя сезона не может быть пустым');
+      return;
+    }
+    try {
+      await api.seasons.update(id, trimmed);
+      toast.success('Имя сезона обновлено');
+      setEditingId(null);
+      setEditValue('');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось переименовать');
+    }
+  }
+
+  async function handleDelete(season: Season) {
+    try {
+      await api.seasons.remove(season.id);
+      if (season.id === currentSeasonId) {
+        const remaining = seasons.filter((s) => s.id !== season.id);
+        if (remaining.length > 0) {
+          const newActive = remaining[remaining.length - 1];
+          await api.seasons.setActive(newActive.id, championshipId);
+          onSeasonChange(newActive.id);
+        } else {
+          onSeasonChange('');
+        }
+      }
+      toast.success(`Сезон «${season.name}» удалён`);
+      setDeletingId(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось удалить сезон');
     }
   }
 
@@ -60,11 +112,7 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
           title="Сезонов пока нет"
           description="Создайте первый сезон, чтобы начать管理工作 с этапами и зачётными таблицами."
           action={
-            <Button
-              icon={<Plus size={16} />}
-              onClick={handleCreate}
-              loading={creating}
-            >
+            <Button icon={<Plus size={16} />} onClick={handleCreate} loading={creating}>
               Новый сезон
             </Button>
           }
@@ -82,40 +130,117 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
             Всего: <span className="tabular text-text-primary">{seasons.length}</span>
           </p>
         </div>
-        <Button
-          icon={<Plus size={16} />}
-          onClick={handleCreate}
-          loading={creating}
-        >
+        <Button icon={<Plus size={16} />} onClick={handleCreate} loading={creating}>
           Новый сезон
         </Button>
       </div>
 
       <div className="bg-ink-card border border-ink-border rounded overflow-hidden">
-        {seasons.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => handleSetActive(s)}
-            className={[
-              'w-full text-left px-4 py-3 border-b border-ink-border last:border-b-0 transition flex items-center justify-between',
-              s.id === currentSeasonId
-                ? 'bg-ink-elevated text-lime-primary'
-                : 'hover:bg-ink-elevated text-text-primary',
-            ].join(' ')}
-          >
-            <div className="flex items-center gap-3">
-              <Trophy
-                size={16}
-                className={s.id === currentSeasonId ? 'text-lime-primary' : 'text-text-muted'}
-              />
-              <span className="text-sm font-bold">{s.name}</span>
+        {seasons.map((s) => {
+          const isEditing = editingId === s.id;
+          const isCurrent = s.id === currentSeasonId;
+
+          return (
+            <div
+              key={s.id}
+              className={[
+                'border-b border-ink-border last:border-b-0 transition flex items-center gap-2',
+                isCurrent ? 'bg-ink-elevated' : 'hover:bg-ink-elevated/50',
+              ].join(' ')}
+            >
+              {/* Активировать */}
+              <button
+                onClick={() => handleSetActive(s)}
+                disabled={isEditing}
+                className={[
+                  'flex-1 text-left px-4 py-3 flex items-center gap-3',
+                  isEditing ? 'cursor-default' : 'cursor-pointer',
+                ].join(' ')}
+              >
+                <Trophy
+                  size={16}
+                  className={isCurrent ? 'text-lime-primary' : 'text-text-muted'}
+                />
+                {isEditing ? (
+                  <input
+                    ref={editRef}
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveEdit(s.id);
+                      if (e.key === 'Escape') cancelEdit();
+                    }}
+                    className="flex-1 bg-transparent border-b border-lime-primary/40 text-sm font-bold text-text-primary outline-none py-0.5"
+                  />
+                ) : (
+                  <span className="text-sm font-bold text-text-primary">{s.name}</span>
+                )}
+                {isCurrent && !isEditing && (
+                  <span className="text-[10px] uppercase tracking-badge text-lime-muted">
+                    активный
+                  </span>
+                )}
+              </button>
+
+              {/* Кнопки действий */}
+              <div className="flex items-center gap-1 pr-3">
+                {isEditing ? (
+                  <>
+                    <button
+                      onClick={() => saveEdit(s.id)}
+                      className="p-1.5 rounded text-lime-primary hover:bg-lime-primary/10 transition"
+                      title="Сохранить"
+                    >
+                      <Check size={14} />
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="p-1.5 rounded text-text-secondary hover:bg-ink-surface transition"
+                      title="Отмена"
+                    >
+                      <X size={14} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => startEdit(s)}
+                      className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-ink-surface transition"
+                      title="Переименовать"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => setDeletingId(s.id)}
+                      className="p-1.5 rounded text-text-secondary hover:text-danger hover:bg-danger/10 transition"
+                      title="Удалить"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-            {s.isActive && (
-              <span className="text-[10px] uppercase tracking-badge text-lime-muted">активный</span>
-            )}
-          </button>
-        ))}
+          );
+        })}
       </div>
+
+      <ConfirmDialog
+        open={deletingId !== null}
+        onCancel={() => setDeletingId(null)}
+        onConfirm={() => {
+          const s = seasons.find((x) => x.id === deletingId);
+          if (s) handleDelete(s);
+        }}
+        title="Удалить сезон?"
+        message={
+          deletingId
+            ? `Сезон «${seasons.find((x) => x.id === deletingId)?.name}» будет удалён вместе со всеми этапами и результатами.`
+            : ''
+        }
+        confirmLabel="Удалить"
+        destructive
+      />
     </div>
   );
 }

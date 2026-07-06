@@ -14,30 +14,31 @@ import { StageCard } from './StageCard';
 
 interface Props {
   championshipId: string;
+  seasonId: string;
   permissions?: EditorPermissions;
 }
 
-export function StagesTab({ championshipId, permissions }: Props) {
+export function StagesTab({ championshipId, seasonId, permissions }: Props) {
   const canWrite = permissions?.canManageStages ?? true;
   const toast = useToast();
 
   const childFilter = `championship_id=eq.${championshipId}`;
 
   const stagesFetcher = useCallback(
-    () => api.stages.list(championshipId),
-    [championshipId],
+    () => api.stages.list(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const driversFetcher = useCallback(
-    () => api.drivers.list(championshipId),
-    [championshipId],
+    () => api.drivers.list(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const teamsFetcher = useCallback(
-    () => api.teams.list(championshipId),
-    [championshipId],
+    () => api.teams.list(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const standingsFetcher = useCallback(
-    () => api.standings.get(championshipId),
-    [championshipId],
+    () => api.standings.get(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const stagesQ = useSupabaseQuery<Stage[]>(
     stagesFetcher,
@@ -146,6 +147,7 @@ export function StagesTab({ championshipId, permissions }: Props) {
           open={wizardOpen}
           onClose={() => setWizardOpen(false)}
           championshipId={championshipId}
+          seasonId={seasonId}
         />
       )}
 

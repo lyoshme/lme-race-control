@@ -12,17 +12,18 @@ import type { ScoringSystem } from '@/types';
 
 interface Props {
   championshipId: string;
+  seasonId: string;
   permissions: {
     canManageScoring: boolean;
     isOwner: boolean;
   };
 }
 
-export function ScoringTab({ championshipId, permissions }: Props) {
+export function ScoringTab({ championshipId, seasonId, permissions }: Props) {
   const toast = useToast();
   const fetcher = useCallback(
-    () => api.scoring.list(championshipId),
-    [championshipId],
+    () => api.scoring.list(championshipId, seasonId),
+    [championshipId, seasonId],
   );
   const { data: systemsData } = useSupabaseQuery<ScoringSystem[]>(
     fetcher,

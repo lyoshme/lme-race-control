@@ -34,3 +34,16 @@ export async function setActive(id: string, championshipId: string): Promise<voi
     .eq('id', id);
   if (error) throw error;
 }
+
+export async function update(id: string, name: string): Promise<void> {
+  const { error } = await supabase
+    .from('seasons')
+    .update({ name } as never)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function remove(id: string): Promise<void> {
+  const { error } = await supabase.from('seasons').delete().eq('id', id);
+  if (error) throw error;
+}
