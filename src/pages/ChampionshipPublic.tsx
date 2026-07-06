@@ -13,7 +13,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import { useToast } from '@/components/toast/ToastContext';
 import * as api from '@/lib/api';
-import type { Championship, Driver, Stage, Standings, Team } from '@/types';
+import type { Championship, Driver, Season, Stage, Standings, Team } from '@/types';
+import { SeasonSelector } from '@/features/seasons/SeasonSelector';
 import { DISCIPLINE_LABELS } from '@/types';
 import { DriversTable } from '@/features/standings/DriversTable';
 import { TeamsTable } from '@/features/standings/TeamsTable';
@@ -29,56 +30,73 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
   const { goHome, goManage, setPublicTab } = useRouter();
   const { session, profile } = useAuth();
   const toast = useToast();
+  const [seasonId, setSeasonId] = useState<string>('');
 
   const champFetcher = useCallback(
     () => api.championships.getById(championshipId),
     [championshipId],
   );
-  const teamsFetcher = useCallback(
-    () => api.teams.list(championshipId),
+  const seasonsFetcher = useCallback(
+    () => api.seasons.list(championshipId),
     [championshipId],
+  );
+  const teamsFetcher = useCallback(
+    () => seasonId ? api.teams.list(championshipId, seasonId) : Promise.resolve([]),
+    [championshipId, seasonId],
   );
   const driversFetcher = useCallback(
-    () => api.drivers.list(championshipId),
-    [championshipId],
+    () => seasonId ? api.drivers.list(championshipId, seasonId) : Promise.resolve([]),
+    [championshipId, seasonId],
   );
   const standingsFetcher = useCallback(
-    () => api.standings.get(championshipId),
-    [championshipId],
+    () => seasonId ? api.standings.get(championshipId, seasonId) : Promise.resolve(null),
+    [championshipId, seasonId],
   );
   const stagesFetcher = useCallback(
-    () => api.stages.list(championshipId),
-    [championshipId],
+    () => seasonId ? api.stages.list(championshipId, seasonId) : Promise.resolve([]),
+    [championshipId, seasonId],
   );
 
   const champFilter = `id=eq.${championshipId}`;
-  const childFilter = `championship_id=eq.${championshipId}`;
+  const seasonFilter = `championship_id=eq.${championshipId}`;
 
   const champQ = useSupabaseQuery<Championship | null>(
     champFetcher,
     [{ table: 'championships', filter: champFilter }],
     [championshipId],
   );
+  const { data: seasons } = useSupabaseQuery<Season[]>(
+    seasonsFetcher,
+    [{ table: 'seasons', filter: seasonFilter }],
+    [championshipId],
+  );
   const teamsQ = useSupabaseQuery<Team[]>(
     teamsFetcher,
-    [{ table: 'teams', filter: childFilter }],
-    [championshipId],
+    [{ table: 'teams', filter: `championship_id=eq.${championshipId}${seasonId ? `,season_id=eq.${seasonId}` : ''}` }],
+    [championshipId, seasonId],
   );
   const driversQ = useSupabaseQuery<Driver[]>(
     driversFetcher,
-    [{ table: 'drivers', filter: childFilter }],
-    [championshipId],
+    [{ table: 'drivers', filter: `championship_id=eq.${championshipId}${seasonId ? `,season_id=eq.${seasonId}` : ''}` }],
+    [championshipId, seasonId],
   );
   const standingsQ = useSupabaseQuery<Standings | null>(
     standingsFetcher,
-    [{ table: 'standings', filter: childFilter }],
-    [championshipId],
+    [{ table: 'standings', filter: `championship_id=eq.${championshipId}${seasonId ? `,season_id=eq.${seasonId}` : ''}` }],
+    [championshipId, seasonId],
   );
   const stagesQ = useSupabaseQuery<Stage[]>(
     stagesFetcher,
-    [{ table: 'stages', filter: childFilter }],
-    [championshipId],
+    [{ table: 'stages', filter: `championship_id=eq.${championshipId}${seasonId ? `,season_id=eq.${seasonId}` : ''}` }],
+    [championshipId, seasonId],
   );
+
+  useEffect(() => {
+    if (seasons && seasons.length > 0 && !seasonId) {
+      const active = seasons.find((s) => s.isActive) ?? seasons[seasons.length - 1];
+      setSeasonId(active.id);
+    }
+  }, [seasons, seasonId]);
 
   const championship = champQ.data;
   const teams = teamsQ.data ?? [];
@@ -166,6 +184,7 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
                 </Badge>
                 <Badge variant="muted">{discipline}</Badge>
                 {championship.season && <Badge variant="muted">{championship.season}</Badge>}
+                <SeasonSelector championshipId={championshipId} seasonId={seasonId} onChange={setSeasonId} />
               </div>
               <h1 className="text-4xl sm:text-6xl font-bold leading-none tracking-display">
                 {championship.title}
@@ -242,7 +261,7 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
           )}
           {tab === 'drivers' && (
             initialized ? (
-              <DriversTable drivers={drivers} teams={teams} standings={standings} stages={stages} />
+              <DriversTable drivers={drivers} teams={teams} standings={standings} stages={stages} championshipId={championshipId} />
             ) : (
               <NotInitializedState organizer={organizer} onManage={() => goManage(championshipId, 'standings')} />
             )
