@@ -6,6 +6,7 @@ import type {
   Championship,
   Driver,
   ScoringSystem,
+  Season,
   Stage,
   StageResultRow,
   Standings,
@@ -15,6 +16,7 @@ import type {
   ChampionshipRow,
   DriverRow,
   ScoringSystemRow,
+  SeasonRow,
   StageRow,
   StandingsRow,
   TeamRow,
@@ -75,6 +77,25 @@ export function championshipToUpdate(
   if (patch.status !== undefined) out.lifecycle = patch.status;
   if (patch.isHidden !== undefined) out.is_hidden = patch.isHidden;
   return out;
+}
+
+/* -------------------- Season -------------------- */
+export function rowToSeason(r: SeasonRow): Season {
+  return {
+    id: r.id,
+    championshipId: r.championship_id,
+    name: r.name,
+    isActive: r.is_active,
+    createdAt: new Date(r.created_at).getTime(),
+  };
+}
+
+export function seasonToInsert(s: { championshipId: string; name: string }): Partial<SeasonRow> {
+  return {
+    championship_id: s.championshipId,
+    name: s.name,
+    is_active: true,
+  };
 }
 
 /* -------------------- Team -------------------- */
