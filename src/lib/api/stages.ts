@@ -2,11 +2,12 @@ import { supabase } from '@/lib/supabase';
 import type { Stage } from '@/types';
 import { rowToStage, stageToInsert } from './mappers';
 
-export async function list(championshipId: string): Promise<Stage[]> {
+export async function list(championshipId: string, seasonId: string): Promise<Stage[]> {
   const { data, error } = await supabase
     .from('stages')
     .select('*')
     .eq('championship_id', championshipId)
+    .eq('season_id', seasonId)
     .order('stage_date', { ascending: false });
   if (error) throw error;
   return (data ?? []).map(rowToStage);

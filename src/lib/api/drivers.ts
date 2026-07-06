@@ -2,11 +2,12 @@ import { supabase } from '@/lib/supabase';
 import type { Driver } from '@/types';
 import { driverToInsert, driverToUpdate, rowToDriver } from './mappers';
 
-export async function list(championshipId: string): Promise<Driver[]> {
+export async function list(championshipId: string, seasonId: string): Promise<Driver[]> {
   const { data, error } = await supabase
     .from('drivers')
     .select('*')
     .eq('championship_id', championshipId)
+    .eq('season_id', seasonId)
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []).map(rowToDriver);
