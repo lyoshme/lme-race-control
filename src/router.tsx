@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 
 export type PublicTab = 'overview' | 'drivers' | 'teams' | 'participants' | 'stages';
-export type ManageTab = 'settings' | 'teams' | 'scoring' | 'standings' | 'stages' | 'editors';
+export type ManageTab = 'settings' | 'teams' | 'scoring' | 'standings' | 'stages' | 'editors' | 'seasons';
 
 export type Route =
   | { view: 'landing' }
@@ -10,7 +10,8 @@ export type Route =
   | { view: 'admin' }
   | { view: 'invite'; inviteId: string }
   | { view: 'public'; championshipId: string; tab: PublicTab }
-  | { view: 'manage'; championshipId: string; tab: ManageTab };
+  | { view: 'manage'; championshipId: string; tab: ManageTab }
+  | { view: 'driverProfile'; championshipId: string; driverId: string };
 
 interface RouterCtx {
   route: Route;
@@ -20,13 +21,13 @@ interface RouterCtx {
   goInvite: (id: string) => void;
   goPublic: (id: string, tab?: PublicTab) => void;
   goManage: (id: string, tab?: ManageTab) => void;
+  goDriverProfile: (championshipId: string, driverId: string) => void;
   setPublicTab: (tab: PublicTab) => void;
   setManageTab: (tab: ManageTab) => void;
 }
 
 const Ctx = createContext<RouterCtx | null>(null);
 
-/* Парсинг хеша */
 function parseHash(): Route {
   if (typeof window === 'undefined') return { view: 'landing' };
   const hash = window.location.hash.replace(/^#\/?/, '');
@@ -35,7 +36,9 @@ function parseHash(): Route {
   if (parts[0] === 'account') return { view: 'account' };
   if (parts[0] === 'admin') return { view: 'admin' };
   if (parts[0] === 'invite' && parts[1]) return { view: 'invite', inviteId: parts[1] };
-  // championship/:id[/tab] | championship/:id/manage[/tab]
+  if (parts[0] === 'championship' && parts[1] && parts[2] === 'driver' && parts[3]) {
+    return { view: 'driverProfile', championshipId: parts[1], driverId: parts[3] };
+  }
   if (parts[0] === 'championship' && parts[1]) {
     const id = parts[1];
     if (parts[2] === 'manage') {
@@ -53,6 +56,7 @@ function buildHash(r: Route): string {
   if (r.view === 'account') return '#/account';
   if (r.view === 'admin') return '#/admin';
   if (r.view === 'invite') return `#/invite/${r.inviteId}`;
+  if (r.view === 'driverProfile') return `#/championship/${r.championshipId}/driver/${r.driverId}`;
   if (r.view === 'public') return `#/championship/${r.championshipId}/${r.tab}`;
   return `#/championship/${r.championshipId}/manage/${r.tab}`;
 }
@@ -79,17 +83,14 @@ export function RouterProvider({ children }: { children: ReactNode }) {
       goAccount: () => navigate({ view: 'account' }),
       goAdmin: () => navigate({ view: 'admin' }),
       goInvite: (id) => navigate({ view: 'invite', inviteId: id }),
-      goPublic: (id, tab = 'overview') =>
-        navigate({ view: 'public', championshipId: id, tab }),
-      goManage: (id, tab = 'settings') =>
-        navigate({ view: 'manage', championshipId: id, tab }),
+      goPublic: (id, tab = 'overview') => navigate({ view: 'public', championshipId: id, tab }),
+      goManage: (id, tab = 'settings') => navigate({ view: 'manage', championshipId: id, tab }),
+      goDriverProfile: (championshipId, driverId) => navigate({ view: 'driverProfile', championshipId, driverId }),
       setPublicTab: (tab) => {
-        if (route.view === 'public')
-          navigate({ view: 'public', championshipId: route.championshipId, tab });
+        if (route.view === 'public') navigate({ view: 'public', championshipId: route.championshipId, tab });
       },
       setManageTab: (tab) => {
-        if (route.view === 'manage')
-          navigate({ view: 'manage', championshipId: route.championshipId, tab });
+        if (route.view === 'manage') navigate({ view: 'manage', championshipId: route.championshipId, tab });
       },
     }),
     [route, navigate],

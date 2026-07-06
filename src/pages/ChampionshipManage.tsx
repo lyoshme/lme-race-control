@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, Eye, Lock } from 'lucide-react';
 import { Tabs } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
@@ -10,9 +10,11 @@ import type { ManageTab } from '@/router';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
-import type { Championship, ChampionshipEditor } from '@/types';
+import type { Championship, ChampionshipEditor, Season } from '@/types';
 
 import { SettingsTab } from '@/features/championship/SettingsTab';
+import { SeasonSelector } from '@/features/seasons/SeasonSelector';
+import { SeasonsTab } from '@/features/seasons/SeasonsTab';
 import { TeamsTab } from '@/features/teams/TeamsTab';
 import { ScoringTab } from '@/features/scoring/ScoringTab';
 import { StandingsInitTab } from '@/features/standings/StandingsInitTab';
@@ -37,6 +39,24 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
     [{ table: 'championships', filter: `id=eq.${championshipId}` }],
     [championshipId],
   );
+
+  const seasonsFetcher = useCallback(
+    () => api.seasons.list(championshipId),
+    [championshipId],
+  );
+  const { data: seasons } = useSupabaseQuery<Season[]>(
+    seasonsFetcher,
+    [{ table: 'seasons', filter: `championship_id=eq.${championshipId}` }],
+    [championshipId],
+  );
+  const [seasonId, setSeasonId] = useState<string>('');
+  const activeSeason = seasons?.find((s) => s.isActive) ?? seasons?.[0];
+
+  useEffect(() => {
+    if (activeSeason && !seasonId) {
+      setSeasonId(activeSeason.id);
+    }
+  }, [activeSeason, seasonId]);
 
   const editorRecordFetcher = useCallback(
     () =>
@@ -94,6 +114,7 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
     ];
     if (isOwner || isAdmin) {
       base.push({ key: 'editors', label: 'Редакторы' });
+      base.push({ key: 'seasons', label: 'Сезоны' });
     }
     return base;
   }, [isOwner, isAdmin]);
@@ -173,6 +194,15 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
         {championship.title}
       </h1>
 
+      <div className="mb-4">
+        <SeasonSelector
+          championshipId={championshipId}
+          seasonId={seasonId}
+          onChange={setSeasonId}
+          canManage={isOwner || isAdmin}
+        />
+      </div>
+
       <div className="mb-4 flex items-center gap-2 flex-wrap">
         {moderation === 'pending' && (
           <Badge variant="muted">На модерации</Badge>
@@ -208,11 +238,14 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
 
       <div className="py-6">
         {tab === 'settings' && <SettingsTab championship={championship} permissions={permissions} />}
-        {tab === 'teams' && <TeamsTab championshipId={championshipId} permissions={permissions} />}
-        {tab === 'scoring' && <ScoringTab championshipId={championshipId} permissions={permissions} />}
-        {tab === 'standings' && <StandingsInitTab championshipId={championshipId} permissions={permissions} />}
-        {tab === 'stages' && <StagesTab championshipId={championshipId} permissions={permissions} />}
+        {tab === 'teams' && <TeamsTab championshipId={championshipId} seasonId={seasonId} permissions={permissions} />}
+        {tab === 'scoring' && <ScoringTab championshipId={championshipId} seasonId={seasonId} permissions={permissions} />}
+        {tab === 'standings' && <StandingsInitTab championshipId={championshipId} seasonId={seasonId} permissions={permissions} />}
+        {tab === 'stages' && <StagesTab championshipId={championshipId} seasonId={seasonId} permissions={permissions} />}
         {tab === 'editors' && (isOwner || isAdmin) && <EditorsTab championshipId={championshipId} />}
+        {tab === 'seasons' && (isOwner || isAdmin) && (
+          <SeasonsTab championshipId={championshipId} currentSeasonId={seasonId} onSeasonChange={setSeasonId} />
+        )}
       </div>
     </div>
   );
