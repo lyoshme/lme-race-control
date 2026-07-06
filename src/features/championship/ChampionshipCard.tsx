@@ -23,7 +23,7 @@ export function ChampionshipCard({ championship }: Props) {
       : DISCIPLINE_LABELS[championship.discipline];
 
   return (
-    <div className="group card-hover bg-ink-card border border-ink-border rounded overflow-hidden flex flex-col">
+    <div className="group card-hover glass rounded overflow-hidden flex flex-col">
       <button
         onClick={() => goPublic(championship.id)}
         className="text-left flex-1 flex flex-col"
