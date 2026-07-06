@@ -30,13 +30,23 @@ export interface ChampionshipRow {
   status: ChampStatus;
   rejection_reason: string | null;
   approved_at: string | null;
+  is_hidden: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface SeasonRow {
+  id: string;
+  championship_id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 export interface TeamRow {
   id: string;
   championship_id: string;
+  season_id: string;
   name: string;
   color: string;
   logo_url: string | null;
@@ -47,6 +57,7 @@ export interface TeamRow {
 export interface DriverRow {
   id: string;
   championship_id: string;
+  season_id: string;
   team_id: string | null;
   first_name: string;
   last_name: string;
@@ -59,6 +70,7 @@ export interface DriverRow {
 export interface ScoringSystemRow {
   id: string;
   championship_id: string;
+  season_id: string;
   name: string;
   points: number[];
   bonus_pole: number;
@@ -68,6 +80,7 @@ export interface ScoringSystemRow {
 
 export interface StandingsRow {
   championship_id: string;
+  season_id: string;
   initialized: boolean;
   selected_team_ids: string[];
   driver_points: Record<string, { points: number; wins: number; podiums: number }>;
@@ -78,6 +91,7 @@ export interface StandingsRow {
 export interface StageRow {
   id: string;
   championship_id: string;
+  season_id: string;
   name: string;
   track: string;
   stage_date: string; // YYYY-MM-DD
@@ -129,15 +143,21 @@ export interface Database {
         Insert: Partial<ChampionshipRow> & { title: string };
         Update: Partial<ChampionshipRow>;
       };
+      seasons: {
+        Row: SeasonRow;
+        Insert: Partial<SeasonRow> & { championship_id: string; name: string };
+        Update: Partial<SeasonRow>;
+      };
       teams: {
         Row: TeamRow;
-        Insert: Partial<TeamRow> & { championship_id: string; name: string };
+        Insert: Partial<TeamRow> & { championship_id: string; season_id: string; name: string };
         Update: Partial<TeamRow>;
       };
       drivers: {
         Row: DriverRow;
         Insert: Partial<DriverRow> & {
           championship_id: string;
+          season_id: string;
           first_name: string;
           last_name: string;
         };
@@ -145,18 +165,19 @@ export interface Database {
       };
       scoring_systems: {
         Row: ScoringSystemRow;
-        Insert: Partial<ScoringSystemRow> & { championship_id: string; name: string };
+        Insert: Partial<ScoringSystemRow> & { championship_id: string; season_id: string; name: string };
         Update: Partial<ScoringSystemRow>;
       };
       standings: {
         Row: StandingsRow;
-        Insert: Partial<StandingsRow> & { championship_id: string };
+        Insert: Partial<StandingsRow> & { championship_id: string; season_id: string };
         Update: Partial<StandingsRow>;
       };
       stages: {
         Row: StageRow;
         Insert: Partial<StageRow> & {
           championship_id: string;
+          season_id: string;
           name: string;
           track: string;
           stage_date: string;
