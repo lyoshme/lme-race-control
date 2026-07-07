@@ -12,10 +12,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   championshipId: string;
+  seasonId: string;
   team?: Team | null;
 }
 
-export function TeamModal({ open, onClose, championshipId, team }: Props) {
+export function TeamModal({ open, onClose, championshipId, seasonId, team }: Props) {
   const toast = useToast();
   const [name, setName] = useState('');
   const [logo, setLogo] = useState('');
@@ -57,7 +58,7 @@ export function TeamModal({ open, onClose, championshipId, team }: Props) {
       } else {
         await api.teams.create({
           championshipId,
-          seasonId: '',
+          seasonId,
           name: name.trim(),
           logo: logoUrl,
           color,

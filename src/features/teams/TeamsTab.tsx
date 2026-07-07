@@ -264,12 +264,14 @@ export function TeamsTab({ championshipId, seasonId, permissions }: Props) {
         open={teamModalOpen}
         onClose={() => setTeamModalOpen(false)}
         championshipId={championshipId}
+        seasonId={seasonId}
         team={editingTeam}
       />
       <DriverModal
         open={driverModalOpen}
         onClose={() => setDriverModalOpen(false)}
         championshipId={championshipId}
+        seasonId={seasonId}
         driver={editingDriver}
         defaultTeamId={defaultTeamId}
         teams={teams}

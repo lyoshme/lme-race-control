@@ -12,6 +12,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   championshipId: string;
+  seasonId: string;
   driver?: Driver | null;
   defaultTeamId?: string | null;
   teams: Team[];
@@ -27,6 +28,7 @@ export function DriverModal({
   open,
   onClose,
   championshipId,
+  seasonId,
   driver,
   defaultTeamId,
   teams,
@@ -78,7 +80,7 @@ export function DriverModal({
       const newTeamId = teamId || null;
       const payload = {
         championshipId,
-        seasonId: '',
+        seasonId,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         number: number.trim(),
