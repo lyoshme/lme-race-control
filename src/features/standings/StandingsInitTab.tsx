@@ -114,7 +114,7 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
 
     const s: Standings = {
       championshipId,
-      seasonId: '',
+      seasonId,
       initialized: true,
       selectedTeamIds: selectedTeams.map((t) => t.id),
       driverPoints,
@@ -130,7 +130,7 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
 
   async function reset() {
     try {
-      await api.standings.remove(championshipId);
+      await api.standings.remove(championshipId, seasonId);
       toast.success('Таблицы сброшены');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Не удалось сбросить');

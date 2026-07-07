@@ -204,7 +204,7 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
 
       const stagePayload: Omit<Stage, 'id' | 'createdAt'> = {
         championshipId,
-        seasonId: '',
+        seasonId,
         name: name.trim(),
         track: track.trim(),
         date,

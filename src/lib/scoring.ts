@@ -30,12 +30,13 @@ export const SCORING_PRESETS: ScoringPreset[] = [
 
 export function makeScoringFromPreset(
   championshipId: string,
+  seasonId: string,
   preset: ScoringPreset,
 ): ScoringSystem {
   return {
     id: uuid(),
     championshipId,
-    seasonId: '',
+    seasonId,
     name: preset.label,
     points: [...preset.points],
     bonusPole: 0,

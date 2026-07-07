@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Trophy, Target, Medal, MapPin } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -35,8 +35,30 @@ export function DriverProfile({ championshipId, driverId }: Props) {
     [{ table: 'seasons', filter: `championship_id=eq.${championshipId}` }],
     [championshipId],
   );
-  const activeSeason = seasonsQ.data?.find((s) => s.isActive) ?? seasonsQ.data?.[0];
-  const seasonId = activeSeason?.id ?? '';
+
+  // Найти сезон, в котором есть этот пилот
+  const [foundSeasonId, setFoundSeasonId] = useState<string>('');
+  const seasons = seasonsQ.data ?? [];
+
+  useEffect(() => {
+    if (seasons.length === 0) return;
+    // Попробовать найти пилота в каждом сезоне
+    async function findDriverSeason() {
+      for (const s of seasons) {
+        const drivers = await api.drivers.list(championshipId, s.id);
+        if (drivers.some((d) => d.id === driverId)) {
+          setFoundSeasonId(s.id);
+          return;
+        }
+      }
+      // Если не найден — использовать активный
+      const active = seasons.find((s) => s.isActive) ?? seasons[0];
+      setFoundSeasonId(active?.id ?? '');
+    }
+    if (!foundSeasonId) findDriverSeason();
+  }, [seasons, championshipId, driverId, foundSeasonId]);
+
+  const seasonId = foundSeasonId;
 
   const teamsFetcher = useCallback(
     () => api.teams.list(championshipId, seasonId),

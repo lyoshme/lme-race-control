@@ -89,7 +89,7 @@ export function ScoringTab({ championshipId, seasonId, permissions }: Props) {
     try {
       const created = await api.scoring.create({
         championshipId,
-        seasonId: '',
+        seasonId,
         name: 'Новая система',
         points: [10, 8, 6, 4, 2, 1],
         bonusPole: 0,
@@ -106,7 +106,7 @@ export function ScoringTab({ championshipId, seasonId, permissions }: Props) {
     const preset = SCORING_PRESETS.find((p) => p.key === presetKey);
     if (!preset) return;
     try {
-      const tmp = makeScoringFromPreset(championshipId, preset);
+      const tmp = makeScoringFromPreset(championshipId, seasonId, preset);
       const created = await api.scoring.create({
         championshipId: tmp.championshipId,
         seasonId: tmp.seasonId,

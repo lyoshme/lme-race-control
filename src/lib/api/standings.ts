@@ -23,10 +23,11 @@ export async function upsert(s: Standings): Promise<Standings> {
   return rowToStandings(data);
 }
 
-export async function remove(championshipId: string): Promise<void> {
+export async function remove(championshipId: string, seasonId: string): Promise<void> {
   const { error } = await supabase
     .from('standings')
     .delete()
-    .eq('championship_id', championshipId);
+    .eq('championship_id', championshipId)
+    .eq('season_id', seasonId);
   if (error) throw error;
 }
