@@ -1,11 +1,9 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Flag, MapPin, Trash2, Users, ChevronDown } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { CountryFlag } from '@/components/ui/CountryFlag';
 import { getPodium } from '@/lib/standingsCalc';
 import type { Driver, Stage, StageType, Team } from '@/types';
-import { StageDetailsModal } from './StageDetailsModal';
 
 interface Props {
   stage: Stage;
@@ -13,6 +11,7 @@ interface Props {
   teams: Team[];
   showDelete?: boolean;
   onDelete?: () => void;
+  onShowDetails?: () => void;
 }
 
 const TYPE_LABELS: Record<StageType, string> = {
@@ -23,8 +22,7 @@ const TYPE_LABELS: Record<StageType, string> = {
 
 const PODIUM_CLASS = ['podium-gold', 'podium-silver', 'podium-bronze'];
 
-export function StageCard({ stage, drivers, teams, showDelete, onDelete }: Props) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
+export function StageCard({ stage, drivers, teams, showDelete, onDelete, onShowDetails }: Props) {
   const driverMap = new Map(drivers.map((d) => [d.id, d]));
   const teamMap = new Map(teams.map((t) => [t.id, t]));
 
@@ -132,20 +130,12 @@ export function StageCard({ stage, drivers, teams, showDelete, onDelete }: Props
       </div>
 
       <button
-        onClick={() => setDetailsOpen(true)}
+        onClick={onShowDetails}
         className="px-4 py-2 border-t border-ink-border text-xs uppercase tracking-badge text-text-secondary hover:text-lime-primary hover:bg-ink-elevated transition flex items-center justify-center gap-1"
       >
         Все результаты
         <ChevronDown size={12} />
       </button>
-
-      <StageDetailsModal
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        stage={stage}
-        drivers={drivers}
-        teams={teams}
-      />
     </div>
   );
 }
