@@ -106,7 +106,7 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
     return () => {
       alive = false;
     };
-  }, [open, championshipId]);
+  }, [open, championshipId, seasonId]);
 
   // Eligible — пилоты, которые либо есть в standings.driverPoints,
   // либо состоят в одной из выбранных для чемпионата команд.
