@@ -9,31 +9,33 @@ import { ChampionshipCard } from '@/features/championship/ChampionshipCard';
 import { HeroVideoBackground } from '@/components/layout/HeroVideoBackground';
 import { AuthModal } from '@/features/auth/AuthModal';
 import { useAuth } from '@/hooks/useAuth';
+import { useEntranceOnce } from '@/hooks/useEntranceOnce';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
 
 const heroStagger = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.12 } },
+  visible: { transition: { staggerChildren: 0.06 } },
 };
 
 const heroItem = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
 };
 
 const cardStagger = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.08 } },
+  visible: { transition: { staggerChildren: 0.05 } },
 };
 
 const cardItem = {
   hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
 };
 
 export function Landing() {
   const { session } = useAuth();
+  const entrance = useEntranceOnce('landing');
   const [createOpen, setCreateOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -69,7 +71,7 @@ export function Landing() {
           <motion.div
             className="flex flex-col items-start gap-6 max-w-3xl"
             variants={heroStagger}
-            initial="hidden"
+            initial={entrance ? 'hidden' : false}
             animate="visible"
           >
             <motion.span
@@ -139,7 +141,7 @@ export function Landing() {
           <motion.div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
             variants={cardStagger}
-            initial="hidden"
+            initial={entrance ? 'hidden' : false}
             animate="visible"
           >
             {items.map((c) => (

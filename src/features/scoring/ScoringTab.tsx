@@ -211,7 +211,7 @@ export function ScoringTab({ championshipId, seasonId, permissions }: Props) {
         </div>
         {!disabled && (
           <div className="flex flex-col gap-2 pt-2">
-            <span className="text-[11px] uppercase tracking-badge text-text-secondary">Пресеты</span>
+            <span className="text-2xs uppercase tracking-badge text-text-secondary">Пресеты</span>
             <div className="flex flex-wrap gap-2">
               {SCORING_PRESETS.map((p) => (
                 <Button key={p.key} variant="ghost" size="sm" onClick={() => createFromPreset(p.key)}>

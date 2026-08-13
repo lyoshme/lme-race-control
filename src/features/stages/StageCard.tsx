@@ -40,7 +40,7 @@ export function StageCard({ stage, drivers, teams, showDelete, onDelete, onShowD
           <h3 className="text-base font-bold tracking-section uppercase truncate">
             {stage.name}
           </h3>
-          <div className="flex items-center gap-3 mt-1 flex-wrap text-[11px] uppercase tracking-badge text-text-secondary">
+          <div className="flex items-center gap-3 mt-1 flex-wrap text-2xs uppercase tracking-badge text-text-secondary">
             <span className="flex items-center gap-1">
               <Calendar size={11} /> {formattedDate}
             </span>
@@ -115,7 +115,7 @@ export function StageCard({ stage, drivers, teams, showDelete, onDelete, onShowD
                     )}
                   </div>
                   {team && (
-                    <div className="text-[10px] text-text-muted uppercase tracking-badge truncate">
+                    <div className="text-3xs text-text-muted uppercase tracking-badge truncate">
                       {team.name}
                     </div>
                   )}

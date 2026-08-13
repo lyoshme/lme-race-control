@@ -52,21 +52,22 @@ export function UserMenu() {
         {open && (
           <motion.div
             role="menu"
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 45 }}
+            style={{ transformOrigin: 'top right' }}
             className="absolute right-0 mt-2 w-56 bg-ink-elevated border border-ink-border rounded shadow-2xl overflow-hidden z-40"
           >
             <div className="px-3 py-2 border-b border-ink-border">
-              <div className="text-[11px] uppercase tracking-badge text-text-muted">
+              <div className="text-2xs uppercase tracking-badge text-text-muted">
                 Вошли как
               </div>
               <div className="text-sm font-bold truncate">
                 {profile?.email || session.user.email}
               </div>
               {profile?.is_admin && (
-                <div className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-badge text-lime-primary">
+                <div className="mt-1 inline-flex items-center gap-1 text-3xs uppercase tracking-badge text-lime-primary">
                   <Shield size={10} /> Администратор
                 </div>
               )}

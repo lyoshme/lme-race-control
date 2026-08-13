@@ -81,7 +81,7 @@ export function ParticipantsStep({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 max-h-[55vh] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-3 max-h-[55dvh] overflow-y-auto pr-1">
         {teams.map((team) => {
           const teamDrivers = grouped.get(team.id) ?? [];
           if (teamDrivers.length === 0) return null;
@@ -107,7 +107,7 @@ export function ParticipantsStep({
                 <span className="font-bold text-sm flex-1 truncate">
                   {team.name}
                 </span>
-                <span className="text-[11px] tabular text-text-muted uppercase tracking-badge">
+                <span className="text-2xs tabular text-text-muted uppercase tracking-badge">
                   {teamDrivers.filter((d) => selected.has(d.id)).length}/
                   {teamDrivers.length}
                 </span>
@@ -142,7 +142,7 @@ export function ParticipantsStep({
               >
                 <Checkbox checked={allSelected} indeterminate={someSelected} />
                 <span className="font-bold text-sm flex-1">Без команды</span>
-                <span className="text-[11px] tabular text-text-muted uppercase tracking-badge">
+                <span className="text-2xs tabular text-text-muted uppercase tracking-badge">
                   {orphans.filter((d) => selected.has(d.id)).length}/
                   {orphans.length}
                 </span>

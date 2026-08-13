@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CountryFlag } from '@/components/ui/CountryFlag';
 import { useRouter } from '@/router';
+import { useEntranceOnce } from '@/hooks/useEntranceOnce';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
 import type { Driver, Season, Stage, Standings, Team } from '@/types';
@@ -19,6 +20,7 @@ interface Props {
 
 export function DriverProfile({ championshipId, driverId }: Props) {
   const { goPublic } = useRouter();
+  const entrance = useEntranceOnce(`driver:${driverId}`);
 
   const champFetcher = useCallback(
     () => api.championships.getById(championshipId),
@@ -165,7 +167,7 @@ export function DriverProfile({ championshipId, driverId }: Props) {
             {/* Информация — слева */}
             <motion.div
               className="flex-1 text-center lg:text-left"
-              initial={{ opacity: 0, x: -30 }}
+              initial={entrance ? { opacity: 0, x: -30 } : false}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
             >
@@ -234,7 +236,7 @@ export function DriverProfile({ championshipId, driverId }: Props) {
             {/* Фото пилота — справа */}
             <motion.div
               className="relative shrink-0"
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={entrance ? { opacity: 0, scale: 0.9 } : false}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
@@ -269,7 +271,7 @@ export function DriverProfile({ championshipId, driverId }: Props) {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
         <motion.h2
           className="text-lg font-bold tracking-section uppercase mb-6"
-          initial={{ opacity: 0 }}
+          initial={entrance ? { opacity: 0 } : false}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
@@ -278,7 +280,7 @@ export function DriverProfile({ championshipId, driverId }: Props) {
 
         <motion.div
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
-          initial={{ opacity: 0, y: 20 }}
+          initial={entrance ? { opacity: 0, y: 20 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.4 }}
         >
@@ -298,7 +300,7 @@ export function DriverProfile({ championshipId, driverId }: Props) {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-16">
         <motion.h2
           className="text-lg font-bold tracking-section uppercase mb-6"
-          initial={{ opacity: 0 }}
+          initial={entrance ? { opacity: 0 } : false}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
@@ -314,13 +316,13 @@ export function DriverProfile({ championshipId, driverId }: Props) {
         ) : (
           <motion.div
             className="overflow-x-auto"
-            initial={{ opacity: 0 }}
+            initial={entrance ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
           >
             <table className="w-full border-collapse">
               <thead>
-                <tr className="text-[11px] uppercase tracking-badge text-text-secondary border-b border-ink-border">
+                <tr className="text-2xs uppercase tracking-badge text-text-secondary border-b border-ink-border">
                   <th className="text-left px-4 py-3">Этап</th>
                   <th className="text-left px-4 py-3 hidden sm:table-cell">Дата</th>
                   <th className="text-left px-4 py-3 hidden md:table-cell">Трасса</th>
@@ -340,14 +342,14 @@ export function DriverProfile({ championshipId, driverId }: Props) {
                   return (
                     <motion.tr
                       key={stage.id}
-                      initial={{ opacity: 0, x: -10 }}
+                      initial={entrance ? { opacity: 0, x: -10 } : false}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.6 + idx * 0.04 }}
                       className="border-b border-ink-border hover:bg-ink-surface transition-colors"
                     >
                       <td className="px-4 py-3">
                         <div className="font-bold text-sm">{stage.name}</div>
-                        <div className="text-[11px] text-text-muted sm:hidden">{formattedDate}</div>
+                        <div className="text-2xs text-text-muted sm:hidden">{formattedDate}</div>
                       </td>
                       <td className="px-4 py-3 text-sm text-text-secondary hidden sm:table-cell tabular">
                         {formattedDate}
@@ -411,7 +413,7 @@ function StatCard({
         accent ? 'border-lime-primary/20' : '',
       ].join(' ')}
     >
-      <span className="text-text-secondary flex items-center gap-1.5 text-[11px] uppercase tracking-badge">
+      <span className="text-text-secondary flex items-center gap-1.5 text-2xs uppercase tracking-badge">
         {icon} {label}
       </span>
       <span

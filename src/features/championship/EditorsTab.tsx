@@ -251,7 +251,7 @@ export function EditorsTab({ championshipId }: Props) {
                       <div className="font-semibold text-text-primary">
                         {editor.userDisplayName || 'Без имени'}
                       </div>
-                      <div className="text-[10px] text-text-muted mt-0.5">{editor.userEmail}</div>
+                      <div className="text-3xs text-text-muted mt-0.5">{editor.userEmail}</div>
                     </td>
                     <td className="p-3">
                       <PermissionBadge active={editor.canManageSettings} />
@@ -303,10 +303,10 @@ export function EditorsTab({ championshipId }: Props) {
               return (
                 <div key={invite.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-ink-surface/10 transition">
                   <div className="space-y-1">
-                    <div className="font-semibold text-text-secondary truncate max-w-sm sm:max-w-md bg-ink-deep px-2 py-1 rounded border border-ink-border text-[11px] tabular">
+                    <div className="font-semibold text-text-secondary truncate max-w-sm sm:max-w-md bg-ink-deep px-2 py-1 rounded border border-ink-border text-2xs tabular">
                       {link}
                     </div>
-                    <div className="flex gap-2 text-[10px] text-text-muted flex-wrap">
+                    <div className="flex gap-2 text-3xs text-text-muted flex-wrap">
                       <span>Настройки: {invite.canManageSettings ? '✓' : '✗'}</span>
                       <span>•</span>
                       <span>Команды: {invite.canManageTeams ? '✓' : '✗'}</span>
@@ -323,7 +323,7 @@ export function EditorsTab({ championshipId }: Props) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-danger hover:bg-danger/10 text-[11px]"
+                      className="text-danger hover:bg-danger/10 text-2xs"
                       onClick={() => setConfirmRevokeInvite(invite)}
                     >
                       Отозвать
@@ -506,7 +506,7 @@ function PermissionBadge({ active }: { active: boolean }) {
   return (
     <span
       className={[
-        'px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-badge shrink-0',
+        'px-2 py-0.5 rounded-full text-3xs uppercase font-bold tracking-badge shrink-0',
         active ? 'bg-lime-primary/15 text-lime-primary' : 'bg-ink-deep text-text-muted border border-ink-border',
       ].join(' ')}
     >
@@ -539,7 +539,7 @@ function CheckboxRow({
       />
       <div className="space-y-0.5 text-xs">
         <span className="font-semibold text-text-primary block">{label}</span>
-        {description && <span className="text-[10px] text-text-secondary leading-relaxed block">{description}</span>}
+        {description && <span className="text-3xs text-text-secondary leading-relaxed block">{description}</span>}
       </div>
     </label>
   );

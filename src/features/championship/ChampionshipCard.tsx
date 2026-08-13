@@ -66,7 +66,7 @@ export function ChampionshipCard({ championship }: Props) {
             {championship.description || '—'}
           </p>
           <div className="flex items-center gap-3 text-xs text-text-secondary mt-auto pt-2 tabular">
-            <span className="text-text-muted uppercase tracking-badge text-[10px]">
+            <span className="text-text-muted uppercase tracking-badge text-3xs">
               {discipline}
             </span>
           </div>

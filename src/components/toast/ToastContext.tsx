@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 export type ToastKind = 'success' | 'error' | 'info';
@@ -17,12 +18,25 @@ interface ToastCtx {
   info: (message: string) => void;
 }
 
+/* Единственный источник длительности: и JS-таймер, и CSS-прогресс. */
+const TOAST_MS = 4000;
+
+interface TimerState {
+  timeout: ReturnType<typeof setTimeout> | null; // null — на паузе (hover)
+  deadline: number;
+  remaining: number;
+}
+
 const Ctx = createContext<ToastCtx | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Toast[]>([]);
+  const timers = useRef(new Map<number, TimerState>());
 
   const remove = useCallback((id: number) => {
+    const t = timers.current.get(id);
+    if (t?.timeout) clearTimeout(t.timeout);
+    timers.current.delete(id);
     setItems((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
@@ -30,7 +44,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (kind: ToastKind, message: string) => {
       const id = Date.now() + Math.random();
       setItems((prev) => [...prev, { id, kind, message }]);
-      setTimeout(() => remove(id), 4000);
+      const timeout = setTimeout(() => remove(id), TOAST_MS);
+      timers.current.set(id, { timeout, deadline: Date.now() + TOAST_MS, remaining: 0 });
+    },
+    [remove],
+  );
+
+  // Наведение ставит автозакрытие на паузу — сообщение можно дочитать
+  const pause = useCallback((id: number) => {
+    const t = timers.current.get(id);
+    if (!t?.timeout) return;
+    clearTimeout(t.timeout);
+    timers.current.set(id, {
+      timeout: null,
+      deadline: 0,
+      remaining: Math.max(t.deadline - Date.now(), 600),
+    });
+  }, []);
+
+  const resume = useCallback(
+    (id: number) => {
+      const t = timers.current.get(id);
+      if (!t || t.timeout !== null) return;
+      const timeout = setTimeout(() => remove(id), t.remaining);
+      timers.current.set(id, { timeout, deadline: Date.now() + t.remaining, remaining: 0 });
     },
     [remove],
   );
@@ -49,10 +86,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={api}>
       {children}
       <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 max-w-sm">
+        <AnimatePresence>
         {items.map((t) => (
-          <div
+          <motion.div
             key={t.id}
-            className="animate-slide-in-right flex flex-col bg-ink-elevated border border-ink-border rounded overflow-hidden shadow-lg"
+            layout
+            initial={{ opacity: 0, x: '110%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '110%' }}
+            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+            onMouseEnter={() => pause(t.id)}
+            onMouseLeave={() => resume(t.id)}
+            className="group flex flex-col bg-ink-elevated border border-ink-border rounded overflow-hidden shadow-lg"
           >
             <div
               className="flex items-start gap-3 px-4 py-3"
@@ -84,11 +129,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <X size={16} />
               </button>
             </div>
-            {/* Progress bar */}
+            {/* Progress bar (на hover пауза — синхронно с таймером) */}
             <div className="h-0.5 w-full bg-ink-border">
               <div
-                className="h-full toast-progress"
+                className="h-full toast-progress group-hover:[animation-play-state:paused]"
                 style={{
+                  animationDuration: `${TOAST_MS}ms`,
                   backgroundColor:
                     t.kind === 'success'
                       ? 'rgb(var(--success))'
@@ -98,8 +144,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 }}
               />
             </div>
-          </div>
+          </motion.div>
         ))}
+        </AnimatePresence>
       </div>
     </Ctx.Provider>
   );

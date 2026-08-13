@@ -46,7 +46,7 @@ export function StageDetailsModal({ open, onClose, stage, drivers, teams }: Prop
         <div className="bg-ink-card border border-ink-border rounded overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-[10px] uppercase tracking-badge text-text-muted bg-ink-elevated">
+              <thead className="text-3xs uppercase tracking-badge text-text-muted bg-ink-elevated">
                 <tr>
                   <th className="text-left px-3 py-2 w-12">№</th>
                   <th className="text-left px-3 py-2">Пилот</th>
@@ -150,7 +150,7 @@ function Stat({
 }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-badge text-text-muted flex items-center gap-1 mb-0.5">
+      <div className="text-3xs uppercase tracking-badge text-text-muted flex items-center gap-1 mb-0.5">
         {icon} {label}
       </div>
       <div className="text-sm font-bold truncate">{value}</div>

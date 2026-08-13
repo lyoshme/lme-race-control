@@ -32,6 +32,12 @@ export default {
       fontFamily: {
         sans: ['"TikTok Sans"', 'system-ui', 'sans-serif'],
       },
+      // rem вместо жёстких px (text-[10px]/text-[11px]) — мелкие подписи
+      // масштабируются вместе с настройкой размера текста в браузере
+      fontSize: {
+        '2xs': ['0.6875rem', { lineHeight: '1.3' }], // ~11px
+        '3xs': ['0.625rem', { lineHeight: '1.3' }], // ~10px
+      },
       borderRadius: {
         DEFAULT: '4px',
       },

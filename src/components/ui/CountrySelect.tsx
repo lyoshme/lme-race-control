@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { COUNTRIES, COUNTRY_BY_CODE } from '@/lib/countries';
 import { CountryFlag } from './CountryFlag';
@@ -137,8 +138,15 @@ export function CountrySelect({
           />
         </button>
 
+        <AnimatePresence>
         {open && (
-          <div className="absolute z-40 left-0 right-0 mt-1 bg-ink-elevated border border-ink-border rounded shadow-xl overflow-hidden animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 45 }}
+            style={{ transformOrigin: 'top' }}
+            className="absolute z-40 left-0 right-0 mt-1 bg-ink-elevated border border-ink-border rounded shadow-xl overflow-hidden">
             <div className="flex items-center gap-2 px-3 py-2 border-b border-ink-border">
               <Search size={14} className="text-text-muted" />
               <input
@@ -180,7 +188,7 @@ export function CountrySelect({
                     >
                       <CountryFlag code={c.code} size={14} />
                       <span className="flex-1 truncate">{c.name}</span>
-                      <span className="text-[10px] text-text-muted tabular uppercase">
+                      <span className="text-3xs text-text-muted tabular uppercase">
                         {c.code}
                       </span>
                     </button>
@@ -188,8 +196,9 @@ export function CountrySelect({
                 })
               )}
             </div>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </FieldShell>
   );

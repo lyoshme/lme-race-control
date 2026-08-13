@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, Flag, Trophy, Zap } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Input, Select } from '@/components/ui/Input';
 import { useToast } from '@/components/toast/ToastContext';
 import * as api from '@/lib/api';
@@ -67,6 +68,7 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
 
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [confirmClose, setConfirmClose] = useState(false);
 
   // Загрузка данных при открытии
   useEffect(() => {
@@ -102,6 +104,7 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
     setPoleId(null);
     setFastestLapId(null);
     setErrors({});
+    setConfirmClose(false);
 
     return () => {
       alive = false;
@@ -235,10 +238,30 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
   const noScoring = scorings.length === 0;
   const notInitialized = !standings?.initialized;
 
+  // Работа в мастере стоит дорого (расстановка участников) —
+  // случайный Escape/клик мимо не должен молча её стирать.
+  const dirty =
+    !notInitialized &&
+    !noScoring &&
+    (step > 1 || name.trim() !== '' || track.trim() !== '');
+
+  function requestClose() {
+    if (dirty) setConfirmClose(true);
+    else onClose();
+  }
+
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
+      onBeforeClose={() => {
+        if (dirty) {
+          setConfirmClose(true);
+          return false;
+        }
+        return true;
+      }}
       title={`Новый этап — шаг ${step}/4: ${STEP_TITLES[step]}`}
       size="lg"
       footer={
@@ -254,7 +277,7 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
             </Button>
           )}
           <div className="flex-1" />
-          <Button variant="ghost" onClick={onClose} disabled={busy}>
+          <Button variant="ghost" onClick={requestClose} disabled={busy}>
             Отмена
           </Button>
           {step < 4 ? (
@@ -357,6 +380,20 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
         </>
       )}
     </Modal>
+    <ConfirmDialog
+      open={confirmClose}
+      title="Закрыть мастер?"
+      message="Введённые данные этапа — участники, расстановка и бонусы — будут потеряны."
+      confirmLabel="Закрыть"
+      cancelLabel="Продолжить работу"
+      destructive
+      onConfirm={() => {
+        setConfirmClose(false);
+        onClose();
+      }}
+      onCancel={() => setConfirmClose(false)}
+    />
+    </>
   );
 }
 
@@ -386,7 +423,7 @@ function StepIndicator({ step }: { step: Step }) {
             <div className="flex-1 hidden sm:block">
               <div
                 className={[
-                  'text-[11px] uppercase tracking-badge transition',
+                  'text-2xs uppercase tracking-badge transition',
                   active ? 'text-lime-primary' : 'text-text-muted',
                 ].join(' ')}
               >

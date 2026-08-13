@@ -538,7 +538,7 @@ function DraggableDriverRow({
           {driver.firstName} {driver.lastName}
           {driver.country && <CountryFlag code={driver.country} size={12} />}
         </div>
-        <div className="text-[11px] text-text-muted uppercase tracking-badge">
+        <div className="text-2xs text-text-muted uppercase tracking-badge">
           # <span className="tabular">{driver.number}</span>
         </div>
       </div>
@@ -576,7 +576,7 @@ function DriverRowPreview({ driver }: { driver: Driver }) {
           {driver.firstName} {driver.lastName}
           {driver.country && <CountryFlag code={driver.country} size={12} />}
         </div>
-        <div className="text-[11px] text-text-muted uppercase tracking-badge">
+        <div className="text-2xs text-text-muted uppercase tracking-badge">
           # <span className="tabular">{driver.number}</span>
         </div>
       </div>

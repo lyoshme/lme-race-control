@@ -12,12 +12,22 @@ if (!url || !anon) {
   );
 }
 
-export const supabase = createClient<Database>(url ?? '', anon ?? '', {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    storageKey: 'lmerc-auth',
+/*
+  Заглушки валидной формы вместо пустых строк: createClient('') бросает
+  исключение на загрузке модуля и роняет всё приложение в белый экран.
+  С заглушками приложение поднимается и показывает баннер
+  «Supabase не настроен» (isSupabaseConfigured → ConfigWarning).
+*/
+export const supabase = createClient<Database>(
+  url ?? 'https://placeholder.supabase.co',
+  anon ?? 'placeholder-anon-key',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: 'lmerc-auth',
+    },
   },
-});
+);
 
 export const isSupabaseConfigured = !!url && !!anon;

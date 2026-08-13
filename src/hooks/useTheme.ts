@@ -9,9 +9,22 @@ function readStored(): Theme {
   return storage.getJSON<Theme>(KEY, { shared: false }, 'dark');
 }
 
+let themeSwitchTimer: ReturnType<typeof setTimeout> | undefined;
+
 function applyTheme(t: Theme) {
   if (typeof document === 'undefined') return;
-  document.documentElement.setAttribute('data-theme', t);
+  const root = document.documentElement;
+  const prev = root.getAttribute('data-theme');
+  const reduceMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Кросс-фейд только при реальной смене темы (не при первом применении)
+  if (prev && prev !== t && !reduceMotion) {
+    root.classList.add('theme-switching');
+    clearTimeout(themeSwitchTimer);
+    themeSwitchTimer = setTimeout(() => root.classList.remove('theme-switching'), 250);
+  }
+  root.setAttribute('data-theme', t);
 }
 
 export function useTheme(): {

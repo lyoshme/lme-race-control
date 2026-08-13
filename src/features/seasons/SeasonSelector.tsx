@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Plus } from 'lucide-react';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
@@ -55,10 +56,16 @@ export function SeasonSelector({
         <ChevronDown size={12} className={`text-text-secondary transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
+      {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />}
+      <AnimatePresence>
       {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] glass rounded border border-ink-border shadow-lg">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 45 }}
+            style={{ transformOrigin: 'top right' }}
+            className="absolute right-0 top-full mt-1 z-50 min-w-[180px] glass rounded border border-ink-border shadow-lg">
             {seasons?.map((s) => (
               <button
                 key={s.id}
@@ -72,8 +79,8 @@ export function SeasonSelector({
               >
                 <span>{s.name}</span>
                 <span className="flex items-center gap-2">
-                  {s.isActive && <span className="text-[10px] uppercase tracking-badge text-lime-muted">активный</span>}
-                  {s.finishedAt !== null && <span className="text-[10px] uppercase tracking-badge text-text-muted">завершён</span>}
+                  {s.isActive && <span className="text-3xs uppercase tracking-badge text-lime-muted">активный</span>}
+                  {s.finishedAt !== null && <span className="text-3xs uppercase tracking-badge text-text-muted">завершён</span>}
                 </span>
               </button>
             ))}
@@ -87,9 +94,9 @@ export function SeasonSelector({
                 {creating ? 'Создание...' : 'Новый сезон'}
               </button>
             )}
-          </div>
-        </>
+          </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

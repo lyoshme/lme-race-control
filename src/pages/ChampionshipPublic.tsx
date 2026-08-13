@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { Settings, Flag, Users, CalendarDays, ChevronLeft, Clock, Share2 } from 'lucide-react';
 import { Tabs } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useRouter } from '@/router';
 import type { PublicTab } from '@/router';
 import { useAuth } from '@/hooks/useAuth';
+import { useEntranceOnce } from '@/hooks/useEntranceOnce';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import { useToast } from '@/components/toast/ToastContext';
 import * as api from '@/lib/api';
@@ -30,6 +31,7 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
   const { goHome, goManage, setPublicTab } = useRouter();
   const { session, profile } = useAuth();
   const toast = useToast();
+  const entrance = useEntranceOnce(`public:${championshipId}`);
   const [seasonId, setSeasonId] = useState<string>('');
 
   const champFetcher = useCallback(
@@ -168,7 +170,7 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
             <motion.div
               className="flex flex-col gap-4 max-w-3xl"
-              initial={{ opacity: 0, y: 20 }}
+              initial={entrance ? { opacity: 0, y: 20 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
             >
@@ -288,6 +290,7 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
 /** Parallax баннер чемпионата */
 function ChampionshipBanner({ banner, children }: { banner: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start start', 'end start'],
@@ -302,7 +305,7 @@ function ChampionshipBanner({ banner, children }: { banner: string; children: Re
             src={banner}
             alt=""
             className="w-full h-full object-cover parallax-banner"
-            style={{ y }}
+            style={{ y: reduceMotion ? 0 : y }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-ink-deep via-ink-deep/85 to-ink-deep/40" />
         </div>
@@ -388,10 +391,11 @@ function OverviewTab({
 function CountUpStat({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
+  const reduceMotion = useReducedMotion();
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    if (!isInView || value === 0) {
+    if (!isInView || value === 0 || reduceMotion) {
       setDisplay(value);
       return;
     }
@@ -406,11 +410,11 @@ function CountUpStat({ label, value, icon }: { label: string; value: number; ico
       if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
-  }, [isInView, value]);
+  }, [isInView, value, reduceMotion]);
 
   return (
     <div ref={ref} className="bg-ink-elevated border border-ink-border rounded p-3 flex flex-col items-start">
-      <span className="text-text-secondary flex items-center gap-1 text-[11px] uppercase tracking-badge">
+      <span className="text-text-secondary flex items-center gap-1 text-2xs uppercase tracking-badge">
         {icon} {label}
       </span>
       <span className="text-2xl font-bold tabular mt-1">{display}</span>

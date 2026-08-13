@@ -101,7 +101,8 @@ export function CreateChampionshipModal({ open, onClose }: Props) {
       open={open}
       onClose={() => {
         if (saving) return;
-        reset();
+        // Черновик намеренно сохраняется до успешной отправки —
+        // случайное закрытие не теряет введённое.
         onClose();
       }}
       title="Новый чемпионат"

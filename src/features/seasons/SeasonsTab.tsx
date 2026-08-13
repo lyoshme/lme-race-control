@@ -190,12 +190,12 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
                   </span>
                 )}
                 {isCurrent && !isEditing && (
-                  <span className="text-[10px] uppercase tracking-badge text-lime-muted">
+                  <span className="text-3xs uppercase tracking-badge text-lime-muted">
                     активный
                   </span>
                 )}
                 {isFinished && !isEditing && (
-                  <span className="text-[10px] uppercase tracking-badge text-text-muted">
+                  <span className="text-3xs uppercase tracking-badge text-text-muted">
                     завершён
                   </span>
                 )}

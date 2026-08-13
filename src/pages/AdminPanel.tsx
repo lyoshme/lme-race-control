@@ -19,6 +19,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Input';
 import { Tabs } from '@/components/ui/Tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { useEntranceOnce } from '@/hooks/useEntranceOnce';
 import { useRouter } from '@/router';
 import { useToast } from '@/components/toast/ToastContext';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
@@ -42,6 +43,7 @@ export function AdminPanel() {
   const { session, profile, initializing } = useAuth();
   const { goHome, goManage } = useRouter();
   const toast = useToast();
+  const entrance = useEntranceOnce('admin');
 
   const [activeTab, setActiveTab] = useState<AdminTab>('pending');
   const [rejectModal, setRejectModal] = useState<Championship | null>(null);
@@ -144,7 +146,7 @@ export function AdminPanel() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <motion.h1
         className="text-2xl sm:text-3xl font-bold tracking-display uppercase mb-2 flex items-center gap-2"
-        initial={{ opacity: 0, y: 12 }}
+        initial={entrance ? { opacity: 0, y: 12 } : false}
         animate={{ opacity: 1, y: 0 }}
       >
         <Shield className="text-lime-primary" /> Админ-панель
@@ -171,7 +173,7 @@ export function AdminPanel() {
             title={activeTab === 'pending' ? 'Очередь пуста' : 'Нет одобренных'}
           />
         ) : (
-          <motion.div className="flex flex-col gap-4" variants={stagger} initial="hidden" animate="visible">
+          <motion.div className="flex flex-col gap-4" variants={stagger} initial={entrance ? 'hidden' : false} animate="visible">
             {items.map((c) => (
               <motion.div key={c.id} variants={item} className="bg-ink-card border border-ink-border rounded p-4 flex flex-col sm:flex-row gap-4 sm:items-start">
                 <div className="flex-1 min-w-0">

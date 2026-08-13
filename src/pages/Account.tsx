@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
+import { useEntranceOnce } from '@/hooks/useEntranceOnce';
 import { useRouter } from '@/router';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
@@ -38,6 +39,7 @@ const item = {
 export function Account() {
   const { session, profile, initializing, updateProfile } = useAuth();
   const { goHome, goManage, goPublic } = useRouter();
+  const entrance = useEntranceOnce('account');
 
   const [editingName, setEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
@@ -114,7 +116,7 @@ export function Account() {
       {/* Profile header */}
       <motion.div
         className="flex items-start gap-4 mb-8"
-        initial={{ opacity: 0, y: 12 }}
+        initial={entrance ? { opacity: 0, y: 12 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
@@ -190,7 +192,7 @@ export function Account() {
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 gap-4"
           variants={stagger}
-          initial="hidden"
+          initial={entrance ? 'hidden' : false}
           animate="visible"
         >
           {myChampionships.map((c) => (
@@ -215,7 +217,7 @@ export function Account() {
             <motion.div
               className="grid grid-cols-1 sm:grid-cols-2 gap-4"
               variants={stagger}
-              initial="hidden"
+              initial={entrance ? 'hidden' : false}
               animate="visible"
             >
               {editedChampionships.map((c) => (

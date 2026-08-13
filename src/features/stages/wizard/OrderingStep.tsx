@@ -115,7 +115,8 @@ export function OrderingStep({
             })}
           </div>
         </SortableContext>
-        <DragOverlay dropAnimation={null}>
+        {/* Стандартная drop-анимация dnd-kit: отпущенная строка доезжает до своей позиции */}
+        <DragOverlay dropAnimation={{ duration: 220, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' }}>
           {activeDriver ? (
             <div className="bg-ink-elevated border border-lime-primary rounded shadow-2xl px-3 py-2 flex items-center gap-2">
               <GripVertical size={14} className="text-lime-primary" />
@@ -171,22 +172,21 @@ function SortableRow({
     <div
       ref={setNodeRef}
       style={style}
+      {...listeners}
+      {...attributes}
+      aria-label={`Переместить: ${driver.firstName} ${driver.lastName}`}
       className={[
+        // Вся строка — зона захвата (grip остаётся визуальной подсказкой)
         'flex items-center gap-2 px-2 py-2 rounded border transition',
+        'touch-none cursor-grab active:cursor-grabbing',
         isTop3
           ? 'bg-lime-primary/5 border-lime-primary/30'
           : 'bg-ink-card border-ink-border',
       ].join(' ')}
     >
-      <button
-        {...listeners}
-        {...attributes}
-        type="button"
-        className="p-1 text-text-muted hover:text-lime-primary cursor-grab active:cursor-grabbing touch-none"
-        aria-label="Перетащить"
-      >
+      <span className="p-1 text-text-muted" aria-hidden="true">
         <GripVertical size={14} />
-      </button>
+      </span>
       <span
         className={[
           'tabular font-bold w-8 text-center',
@@ -207,7 +207,7 @@ function SortableRow({
           {driver.firstName} {driver.lastName}
           {driver.country && <CountryFlag code={driver.country} size={11} />}
         </div>
-        <div className="text-[11px] text-text-muted uppercase tracking-badge flex items-center gap-2">
+        <div className="text-2xs text-text-muted uppercase tracking-badge flex items-center gap-2">
           <span className="tabular">#{driver.number}</span>
           {team && <span className="truncate">{team.name}</span>}
         </div>
@@ -215,6 +215,8 @@ function SortableRow({
       <button
         type="button"
         onClick={onTogglePole}
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
         title="Pole position"
         aria-label={`Pole position для ${driver.firstName} ${driver.lastName}`}
         className={[
@@ -229,6 +231,8 @@ function SortableRow({
       <button
         type="button"
         onClick={onToggleFL}
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
         title="Fastest lap"
         aria-label={`Fastest lap для ${driver.firstName} ${driver.lastName}`}
         className={[

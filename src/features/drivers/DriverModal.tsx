@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Input, Select } from '@/components/ui/Input';
 import { FileDropzone } from '@/components/ui/FileDropzone';
 import { CountrySelect } from '@/components/ui/CountrySelect';
@@ -42,6 +43,7 @@ export function DriverModal({
   const [teamId, setTeamId] = useState<string | ''>('');
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -52,8 +54,17 @@ export function DriverModal({
       setPhoto(driver?.photo ?? '');
       setTeamId(driver?.teamId ?? defaultTeamId ?? '');
       setErrors({});
+      setConfirmClose(false);
     }
   }, [open, driver, defaultTeamId]);
+
+  const dirty =
+    firstName !== (driver?.firstName ?? '') ||
+    lastName !== (driver?.lastName ?? '') ||
+    number !== (driver?.number ?? '') ||
+    country !== (driver?.country ?? 'RU') ||
+    photo !== (driver?.photo ?? '') ||
+    teamId !== (driver?.teamId ?? defaultTeamId ?? '');
 
   function validate(): boolean {
     const e: Errors = {};
@@ -107,9 +118,17 @@ export function DriverModal({
   }
 
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
+      onBeforeClose={() => {
+        if (dirty) {
+          setConfirmClose(true);
+          return false;
+        }
+        return true;
+      }}
       title={driver ? 'Редактировать пилота' : 'Новый пилот'}
       footer={
         <>
@@ -177,5 +196,19 @@ export function DriverModal({
         </div>
       </div>
     </Modal>
+    <ConfirmDialog
+      open={confirmClose}
+      title="Закрыть без сохранения?"
+      message="Изменения пилота будут потеряны."
+      confirmLabel="Закрыть"
+      cancelLabel="Продолжить работу"
+      destructive
+      onConfirm={() => {
+        setConfirmClose(false);
+        onClose();
+      }}
+      onCancel={() => setConfirmClose(false)}
+    />
+    </>
   );
 }

@@ -52,7 +52,7 @@ export function TeamsTable({ teams, drivers, standings, stages = [] }: Props) {
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="text-[11px] uppercase tracking-badge text-text-secondary">
+          <tr className="text-2xs uppercase tracking-badge text-text-secondary">
             <th className="text-left px-3 py-3 w-14">№</th>
             <th className="text-left px-3 py-3">Команда</th>
             <th className="text-left px-3 py-3 hidden md:table-cell">Пилоты</th>

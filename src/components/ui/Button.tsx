@@ -45,8 +45,10 @@ export function Button({
 }: Props) {
   const ref = useRef<HTMLButtonElement>(null);
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
+  // Координаты ripple ставим на pointer-down: отклик — в момент нажатия,
+  // в точке нажатия (не на отпускании со старыми координатами).
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLButtonElement>) => {
       const btn = ref.current;
       if (btn) {
         const rect = btn.getBoundingClientRect();
@@ -55,9 +57,10 @@ export function Button({
         btn.style.setProperty('--ripple-x', `${x}%`);
         btn.style.setProperty('--ripple-y', `${y}%`);
       }
-      onClick?.(e);
+      rest.onPointerDown?.(e);
     },
-    [onClick],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rest.onPointerDown],
   );
 
   return (
@@ -65,9 +68,11 @@ export function Button({
       ref={ref}
       {...rest}
       disabled={disabled || loading}
-      onClick={handleClick}
+      onClick={onClick}
+      onPointerDown={handlePointerDown}
       className={[
         'btn-ripple inline-flex items-center justify-center gap-2 rounded transition select-none',
+        'active:scale-[0.98]',
         variantClass[variant],
         sizeClass[size],
         full ? 'w-full' : '',

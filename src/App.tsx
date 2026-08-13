@@ -1,4 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
+import { MotionConfig } from 'framer-motion';
 import { ToastProvider } from '@/components/toast/ToastContext';
 import { RouterProvider, useRouter } from '@/router';
 import { AuthProvider } from '@/hooks/useAuth';
@@ -54,12 +55,14 @@ function Router() {
 
 export function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <RouterProvider>
-          <Router />
-        </RouterProvider>
-      </AuthProvider>
-    </ToastProvider>
+    <MotionConfig reducedMotion="user">
+      <ToastProvider>
+        <AuthProvider>
+          <RouterProvider>
+            <Router />
+          </RouterProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </MotionConfig>
   );
 }

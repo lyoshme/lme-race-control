@@ -83,6 +83,24 @@ body {
   transition: background-color 200ms ease, color 200ms ease;
 }
 
+/*
+  Кросс-фейд при переключении темы: useTheme вешает класс на <html> на ~250мс,
+  чтобы вся страница (карточки, границы, текст) перекрашивалась одним движением,
+  а не лоскутно. При prefers-reduced-motion класс не вешается (мгновенная смена).
+*/
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    fill 200ms ease,
+    stroke 200ms ease,
+    box-shadow 200ms ease !important;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -204,16 +222,7 @@ body {
   animation: bounce-soft 2s ease-in-out infinite;
 }
 
-/* Slide-in справа для тостов */
-@keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(100%); }
-  to { opacity: 1; transform: translateX(0); }
-}
-.animate-slide-in-right {
-  animation: slide-in-right 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
-}
-
-/* Progress bar для тостов */
+/* Progress bar для тостов (длительность задаётся инлайн из ToastContext) */
 @keyframes toast-progress {
   from { width: 100%; }
   to { width: 0%; }
@@ -319,4 +328,28 @@ button, input, select, textarea {
 
 [data-theme="light"] .glass-subtle:hover {
   background: rgba(var(--lime-primary) / 0.18);
+}
+
+/* Системная настройка «меньше прозрачности» — стекло становится непрозрачным */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-subtle {
+    backdrop-filter: none;
+    background: rgb(var(--ink-card));
+  }
+  .glass-strong {
+    backdrop-filter: none;
+    background: rgb(var(--ink-deep));
+  }
+}
+
+/* Системная настройка «повышенная контрастность» — чёткие непрозрачные границы */
+@media (prefers-contrast: more) {
+  .glass,
+  .glass-strong,
+  .glass-subtle {
+    backdrop-filter: none;
+    background: rgb(var(--ink-card));
+    border-color: rgb(var(--text-secondary));
+  }
 }

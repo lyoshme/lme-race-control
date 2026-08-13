@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Input } from '@/components/ui/Input';
 import { FileDropzone } from '@/components/ui/FileDropzone';
 import { ColorPicker } from '@/components/ui/ColorPicker';
@@ -23,6 +24,7 @@ export function TeamModal({ open, onClose, championshipId, seasonId, team }: Pro
   const [color, setColor] = useState('#C6FF00');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -30,8 +32,14 @@ export function TeamModal({ open, onClose, championshipId, seasonId, team }: Pro
       setLogo(team?.logo ?? '');
       setColor(team?.color ?? '#C6FF00');
       setError('');
+      setConfirmClose(false);
     }
   }, [open, team]);
+
+  const dirty =
+    name !== (team?.name ?? '') ||
+    logo !== (team?.logo ?? '') ||
+    color !== (team?.color ?? '#C6FF00');
 
   async function save() {
     if (!name.trim()) {
@@ -77,9 +85,17 @@ export function TeamModal({ open, onClose, championshipId, seasonId, team }: Pro
   }
 
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
+      onBeforeClose={() => {
+        if (dirty) {
+          setConfirmClose(true);
+          return false;
+        }
+        return true;
+      }}
       title={team ? 'Редактировать команду' : 'Новая команда'}
       footer={
         <>
@@ -119,5 +135,19 @@ export function TeamModal({ open, onClose, championshipId, seasonId, team }: Pro
         </div>
       </div>
     </Modal>
+    <ConfirmDialog
+      open={confirmClose}
+      title="Закрыть без сохранения?"
+      message="Изменения команды будут потеряны."
+      confirmLabel="Закрыть"
+      cancelLabel="Продолжить работу"
+      destructive
+      onConfirm={() => {
+        setConfirmClose(false);
+        onClose();
+      }}
+      onCancel={() => setConfirmClose(false)}
+    />
+    </>
   );
 }

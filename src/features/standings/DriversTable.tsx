@@ -62,7 +62,7 @@ export function DriversTable({ drivers, teams, standings, stages = [], champions
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="text-[11px] uppercase tracking-badge text-text-secondary">
+          <tr className="text-2xs uppercase tracking-badge text-text-secondary">
             <th className="text-left px-3 py-3 w-14">№</th>
             <th className="text-left px-3 py-3">Пилот</th>
             <th className="text-left px-3 py-3 hidden sm:table-cell">Команда</th>
@@ -87,9 +87,17 @@ export function DriversTable({ drivers, teams, standings, stages = [], champions
                 className={[
                   'border-t border-ink-border cursor-pointer',
                   idx % 2 === 0 ? 'bg-ink-card' : 'bg-ink-elevated',
-                  'hover:bg-ink-surface',
+                  'hover:bg-ink-surface focus-visible:bg-ink-surface',
                 ].join(' ')}
                 onClick={() => goDriverProfile(championshipId, r.driver.id)}
+                tabIndex={0}
+                aria-label={`Профиль пилота ${r.driver.firstName} ${r.driver.lastName}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    goDriverProfile(championshipId, r.driver.id);
+                  }
+                }}
               >
                 <td className="px-3 py-3">
                   <span className={['inline-block tabular font-bold', isTop3 ? 'text-lime-primary text-2xl leading-none' : 'text-text-secondary text-lg leading-none'].join(' ')}>
@@ -105,7 +113,7 @@ export function DriversTable({ drivers, teams, standings, stages = [], champions
                         <span className="font-bold hover:text-lime-primary transition">{r.driver.firstName} {r.driver.lastName}</span>
                         {r.driver.country && <CountryFlag code={r.driver.country} size={12} />}
                       </div>
-                      <div className="text-[11px] text-text-muted sm:hidden flex items-center gap-1.5">
+                      <div className="text-2xs text-text-muted sm:hidden flex items-center gap-1.5">
                         {r.team && (
                           <>
                             <span className="inline-block w-2 h-2 rounded-sm" style={{ backgroundColor: r.team.color }} />

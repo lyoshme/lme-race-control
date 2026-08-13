@@ -31,7 +31,7 @@ export function Tabs<K extends string>({ tabs, active, onChange, className = '' 
           >
             {t.label}
             {t.badge && (
-              <span className="text-[10px] bg-ink-elevated px-1.5 py-0.5 rounded text-text-secondary">
+              <span className="text-3xs bg-ink-elevated px-1.5 py-0.5 rounded text-text-secondary">
                 {t.badge}
               </span>
             )}
