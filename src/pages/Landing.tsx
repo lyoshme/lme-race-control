@@ -58,7 +58,7 @@ export function Landing() {
     <>
       {/* Hero c видео-фоном */}
       <section className="relative border-b border-ink-border overflow-hidden isolate">
-        <HeroVideoBackground src="/newvid.mp4" />
+        <HeroVideoBackground src="/hero.mp4" poster="/hero-poster.jpg" />
         <div
           className="absolute inset-0 pointer-events-none bg-gradient-to-r from-ink-deep/85 via-ink-deep/50 to-transparent"
           aria-hidden="true"

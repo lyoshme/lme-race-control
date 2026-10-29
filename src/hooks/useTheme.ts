@@ -25,6 +25,15 @@ function applyTheme(t: Theme) {
     themeSwitchTimer = setTimeout(() => root.classList.remove('theme-switching'), 250);
   }
   root.setAttribute('data-theme', t);
+  // Цвет рамки/адресной строки браузера и статус-бара iOS
+  // должен следовать за темой (значения дублируют --ink-deep из index.css).
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    document.head.appendChild(meta);
+  }
+  meta.content = t === 'dark' ? '#0a0a0a' : '#fafafa';
 }
 
 export function useTheme(): {
