@@ -35,15 +35,23 @@ export function useSupabaseQuery<T>(
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
+  // Счётчик запросов: ответ устаревшего запроса не должен перезаписывать
+  // более свежий (депс-чейндж и realtime-события могут вызывать refresh
+  // одновременно, а сеть не гарантирует порядок ответов).
+  const seqRef = useRef(0);
+
   const refresh = useCallback(async () => {
+    const seq = ++seqRef.current;
     setError(null);
     try {
       const result = await fetcherRef.current();
+      if (seq !== seqRef.current) return;
       setData(result);
     } catch (e) {
+      if (seq !== seqRef.current) return;
       setError(e instanceof Error ? e : new Error(String(e)));
     } finally {
-      setLoading(false);
+      if (seq === seqRef.current) setLoading(false);
     }
   }, []);
 

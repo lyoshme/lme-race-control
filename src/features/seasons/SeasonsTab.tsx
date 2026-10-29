@@ -35,8 +35,8 @@ export function SeasonsTab({ championshipId, currentSeasonId, onSeasonChange }: 
     const name = `Сезон ${(seasons.length ?? 0) + 1}`;
     setCreating(true);
     try {
+      // create_season уже деактивирует старый и активирует новый (одна транзакция)
       const season = await api.seasons.create(championshipId, name);
-      await api.seasons.setActive(season.id, championshipId);
       onSeasonChange(season.id);
       toast.success(`Сезон «${season.name}» создан`);
     } catch (e) {

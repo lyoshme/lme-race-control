@@ -14,3 +14,6 @@ dist-ssr
 .env
 .env.local
 *.log
+*AGENTS.md
+*CLAUDE.md
+*project.md

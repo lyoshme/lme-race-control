@@ -10,8 +10,6 @@ interface Props {
 }
 
 export function TeamsTable({ teams, drivers, standings, stages = [] }: Props) {
-  const driverMap = new Map(drivers.map((d) => [d.id, d]));
-
   function avgTeamPosition(teamId: string): number {
     if (stages.length === 0) return Infinity;
     const positions: number[] = [];
@@ -29,9 +27,9 @@ export function TeamsTable({ teams, drivers, standings, stages = [] }: Props) {
   const rows = teams
     .map((t) => {
       const points = standings?.teamPoints[t.id] ?? 0;
-      const teamDrivers = t.driverIds
-        .map((id) => driverMap.get(id))
-        .filter((d): d is Driver => !!d);
+      // Ростер команды выводим из актуальной связи driver.team_id
+      // (поле teams.driver_ids не поддерживается и всегда устаревало).
+      const teamDrivers = drivers.filter((d) => d.teamId === t.id);
       return { team: t, points, drivers: teamDrivers, avgPos: avgTeamPosition(t.id), eligible: standings ? t.id in (standings.teamPoints) : true };
     })
     .filter((r) => r.eligible)

@@ -6,7 +6,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Input, Select } from '@/components/ui/Input';
 import { useToast } from '@/components/toast/ToastContext';
 import * as api from '@/lib/api';
-import { applyStageToStandings, buildStageResults } from '@/lib/standingsCalc';
+import { buildStageResults } from '@/lib/standingsCalc';
 import type {
   Driver,
   ScoringSystem,
@@ -217,12 +217,9 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
         results,
       };
 
-      // Сохраняем этап
-      const created = await api.stages.create(stagePayload);
-
-      // Применяем к standings
-      const nextStandings = applyStageToStandings(standings, results);
-      await api.standings.upsert(nextStandings);
+      // Сохраняем этап и применяем очки к standings атомарно (одна
+      // транзакция в БД через RPC confirm_stage).
+      const created = await api.stages.confirm(stagePayload);
 
       toast.success(`Этап «${created.name}» добавлен`);
       onClose();

@@ -6,7 +6,6 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/components/toast/ToastContext';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
-import { revertStageFromStandings } from '@/lib/standingsCalc';
 import type { Driver, Stage, Standings, Team } from '@/types';
 import type { EditorPermissions } from '@/types';
 import { StageWizardModal } from './StageWizardModal';
@@ -43,22 +42,22 @@ export function StagesTab({ championshipId, seasonId, permissions }: Props) {
   const stagesQ = useSupabaseQuery<Stage[]>(
     stagesFetcher,
     [{ table: 'stages', filter: childFilter }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const driversQ = useSupabaseQuery<Driver[]>(
     driversFetcher,
     [{ table: 'drivers', filter: childFilter }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const teamsQ = useSupabaseQuery<Team[]>(
     teamsFetcher,
     [{ table: 'teams', filter: childFilter }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const standingsQ = useSupabaseQuery<Standings | null>(
     standingsFetcher,
     [{ table: 'standings', filter: childFilter }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const stages = stagesQ.data ?? [];
   const drivers = driversQ.data ?? [];
@@ -70,11 +69,8 @@ export function StagesTab({ championshipId, seasonId, permissions }: Props) {
 
   async function handleDelete(stage: Stage) {
     try {
-      // Сначала откат standings, потом удаление этапа
-      if (standings) {
-        const next = revertStageFromStandings(standings, stage.results);
-        await api.standings.upsert(next);
-      }
+      // Удаление + откат очков — одна атомарная транзакция в БД (RPC delete_stage):
+      // клиентский откат не нужен и был бы двойным минусом.
       await api.stages.remove(stage.id);
       toast.success(`Этап «${stage.name}» удалён, очки откатились`);
     } catch (e) {

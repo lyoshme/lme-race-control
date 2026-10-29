@@ -28,7 +28,7 @@ export function ScoringTab({ championshipId, seasonId, permissions }: Props) {
   const { data: systemsData } = useSupabaseQuery<ScoringSystem[]>(
     fetcher,
     [{ table: 'scoring_systems', filter: `championship_id=eq.${championshipId}` }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const systems = systemsData ?? [];
   const [activeId, setActiveId] = useState<string | null>(null);

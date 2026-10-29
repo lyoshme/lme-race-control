@@ -61,14 +61,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-      if (data.session?.user) {
-        void loadProfile(data.session.user.id);
-      }
-      setInitializing(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!mounted) return;
+        setSession(data.session);
+        if (data.session?.user) {
+          void loadProfile(data.session.user.id);
+        }
+        setInitializing(false);
+      })
+      .catch((e) => {
+        // Не зависаем в initializing навсегда при сетевой ошибке
+        console.error('[auth] initial getSession failed', e);
+        if (mounted) setInitializing(false);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);

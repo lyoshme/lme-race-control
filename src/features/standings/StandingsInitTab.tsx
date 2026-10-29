@@ -41,22 +41,22 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
   const teamsQ = useSupabaseQuery<Team[]>(
     teamsFetcher,
     [{ table: 'teams', filter: `championship_id=eq.${championshipId}` }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const driversQ = useSupabaseQuery<Driver[]>(
     driversFetcher,
     [{ table: 'drivers', filter: `championship_id=eq.${championshipId}` }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const standingsQ = useSupabaseQuery<Standings | null>(
     standingsFetcher,
     [{ table: 'standings', filter: `championship_id=eq.${championshipId}` }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const stagesQ = useSupabaseQuery<Stage[]>(
     stagesFetcher,
     [{ table: 'stages', filter: `championship_id=eq.${championshipId}` }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const teams = teamsQ.data ?? [];
   const drivers = driversQ.data ?? [];
@@ -66,14 +66,15 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmReset, setConfirmReset] = useState(false);
 
+  // Сбрасываем выбор при смене чемпионата/сезона и при появлении данных
   useEffect(() => {
-    if (standings?.selectedTeamIds) {
+    if (standings?.initialized) {
       setSelected(new Set(standings.selectedTeamIds));
     } else {
       setSelected(new Set(teams.map((t) => t.id)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [standings?.initialized]);
+  }, [standings?.initialized, championshipId, seasonId]);
 
   function toggle(id: string) {
     if (standings?.initialized) return;
@@ -138,15 +139,20 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
   }
 
   async function resetWithStages() {
-    await reset();
-    // Удаляем все этапы чемпионата
+    // 1. Сначала удаляем этапы — каждое удаление атомарно откатывает очки
+    //    (RPC delete_stage). Пока этап не удалён, таблицы остаются точными.
     try {
       const stages = await api.stages.list(championshipId, seasonId);
       await Promise.all(stages.map((s) => api.stages.remove(s.id)));
     } catch (e) {
-      // не критично
       console.error(e);
+      toast.error(
+        e instanceof Error ? e.message : 'Не удалось удалить этапы — сброшено частично',
+      );
+      return;
     }
+    // 2. Только после успешного удаления этапов сбрасываем сами таблицы
+    await reset();
   }
 
   if (teams.length === 0 || drivers.length === 0) {

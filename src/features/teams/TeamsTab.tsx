@@ -51,12 +51,12 @@ export function TeamsTab({ championshipId, seasonId, permissions }: Props) {
   const teamsQ = useSupabaseQuery<Team[]>(
     teamsFetcher,
     [{ table: 'teams', filter: `championship_id=eq.${championshipId}` }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const driversQ = useSupabaseQuery<Driver[]>(
     driversFetcher,
     [{ table: 'drivers', filter: `championship_id=eq.${championshipId}` }],
-    [championshipId],
+    [championshipId, seasonId],
   );
   const teams = teamsQ.data ?? [];
   const drivers = driversQ.data ?? [];
