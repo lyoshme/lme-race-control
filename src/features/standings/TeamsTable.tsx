@@ -10,18 +10,19 @@ interface Props {
 }
 
 export function TeamsTable({ teams, drivers, standings, stages = [] }: Props) {
-  function avgTeamPosition(teamId: string): number {
+  // Лучшая финишная позиция команды за сезон — лучший результат любого
+  // зачётного экипажа в каком-либо этапе (Infinity — без результатов).
+  function bestTeamFinish(teamId: string): number {
     if (stages.length === 0) return Infinity;
-    const positions: number[] = [];
+    let best = Infinity;
     for (const stage of stages) {
       for (const res of stage.results) {
-        if (res.teamId === teamId) {
-          positions.push(res.position);
+        if (res.teamId === teamId && res.position < best) {
+          best = res.position;
         }
       }
     }
-    if (positions.length === 0) return Infinity;
-    return positions.reduce((a, b) => a + b, 0) / positions.length;
+    return best;
   }
 
   const rows = teams
@@ -30,12 +31,12 @@ export function TeamsTable({ teams, drivers, standings, stages = [] }: Props) {
       // Ростер команды — из актуальной связи driver.team_id.
       // Поле teams.driver_ids (мёртвая денормализация) удалено миграцией 0050.
       const teamDrivers = drivers.filter((d) => d.teamId === t.id);
-      return { team: t, points, drivers: teamDrivers, avgPos: avgTeamPosition(t.id), eligible: standings ? t.id in (standings.teamPoints) : true };
+      return { team: t, points, drivers: teamDrivers, bestPos: bestTeamFinish(t.id), eligible: standings ? t.id in (standings.teamPoints) : true };
     })
     .filter((r) => r.eligible)
     .sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
-      return a.avgPos - b.avgPos;
+      return a.bestPos - b.bestPos;
     });
 
   if (rows.length === 0) {

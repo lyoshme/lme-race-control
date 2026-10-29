@@ -111,7 +111,7 @@ export function Landing() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
         <div className="flex items-baseline justify-between mb-6">
           <h2 className="text-2xl font-bold tracking-section uppercase">
-            Чемпионаты
+            Чемпионаты VAF
           </h2>
           {!loading && (items?.length ?? 0) > 0 && (
             <span className="text-xs uppercase tracking-badge text-text-secondary">

@@ -16,15 +16,19 @@ export function DriversTable({ drivers, teams, standings, stages = [], champions
   const { goDriverProfile } = useRouter();
   const teamMap = new Map(teams.map((t) => [t.id, t]));
 
-  function avgPosition(driverId: string): number {
+  // Лучшая финишная позиция за сезон (1 = победа; Infinity — никогда не финишировал).
+  // Тай-брейк по ничьей в очках: ниже позиция — выше место в таблице.
+  function bestFinish(driverId: string): number {
     if (stages.length === 0) return Infinity;
-    const positions: number[] = [];
+    let best = Infinity;
     for (const stage of stages) {
-      const res = stage.results.find((r) => r.driverId === driverId);
-      if (res) positions.push(res.position);
+      for (const res of stage.results) {
+        if (res.driverId === driverId && res.position < best) {
+          best = res.position;
+        }
+      }
     }
-    if (positions.length === 0) return Infinity;
-    return positions.reduce((a, b) => a + b, 0) / positions.length;
+    return best;
   }
 
   const rows = drivers
@@ -36,18 +40,21 @@ export function DriversTable({ drivers, teams, standings, stages = [], champions
         points: row?.points ?? 0,
         wins: row?.wins ?? 0,
         podiums: row?.podiums ?? 0,
-        avgPos: avgPosition(d.id),
+        bestPos: bestFinish(d.id),
         eligible: standings
-          ? !!row || (!!d.teamId && standings.selectedTeamIds.includes(d.teamId))
+          ? !!row ||
+            (!!d.teamId && standings.selectedTeamIds.includes(d.teamId)) ||
+            standings.selectedDriverIds.includes(d.id)
           : true,
       };
     })
     .filter((r) => r.eligible)
     .sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
+      if (a.bestPos !== b.bestPos) return a.bestPos - b.bestPos;
       if (b.wins !== a.wins) return b.wins - a.wins;
       if (b.podiums !== a.podiums) return b.podiums - a.podiums;
-      return a.avgPos - b.avgPos;
+      return 0;
     });
 
   if (rows.length === 0) {

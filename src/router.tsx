@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
-export type PublicTab = 'overview' | 'drivers' | 'teams' | 'participants' | 'stages';
-export type ManageTab = 'settings' | 'teams' | 'scoring' | 'standings' | 'stages' | 'editors' | 'seasons';
+export type PublicTab = 'overview' | 'drivers' | 'teams' | 'participants' | 'stages' | 'awards';
+export type ManageTab = 'settings' | 'teams' | 'scoring' | 'standings' | 'stages' | 'editors' | 'seasons' | 'awards';
 
 export type Route =
   | { view: 'landing' }

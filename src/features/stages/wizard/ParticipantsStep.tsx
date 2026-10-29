@@ -141,7 +141,7 @@ export function ParticipantsStep({
                 className="w-full flex items-center gap-3 px-3 py-2 border-b border-ink-border hover:bg-ink-elevated transition text-left"
               >
                 <Checkbox checked={allSelected} indeterminate={someSelected} />
-                <span className="font-bold text-sm flex-1">Без команды</span>
+                <span className="font-bold text-sm flex-1">Индивидуальные пилоты</span>
                 <span className="text-2xs tabular text-text-muted uppercase tracking-badge">
                   {orphans.filter((d) => selected.has(d.id)).length}/
                   {orphans.length}

@@ -3,7 +3,7 @@
  * Можно регенерировать через `supabase gen types typescript`, но для MVP
  * держим вручную.
  */
-import type { Discipline, StageType } from '@/types';
+import type { Discipline, AwardKind, StageType } from '@/types';
 
 export type ChampStatus = 'pending' | 'approved' | 'rejected';
 export type ChampLifecycle = 'active' | 'finished';
@@ -40,7 +40,19 @@ export interface SeasonRow {
   championship_id: string;
   name: string;
   is_active: boolean;
+  has_awards: boolean;
   finished_at: string | null;
+  created_at: string;
+}
+
+export interface SeasonAwardRow {
+  id: string;
+  championship_id: string;
+  season_id: string;
+  name: string;
+  kind: AwardKind;
+  winner_driver_id: string | null;
+  winner_team_id: string | null;
   created_at: string;
 }
 
@@ -83,6 +95,7 @@ export interface StandingsRow {
   season_id: string;
   initialized: boolean;
   selected_team_ids: string[];
+  selected_driver_ids: string[];
   driver_points: Record<string, { points: number; wins: number; podiums: number }>;
   team_points: Record<string, number>;
   updated_at: string;
@@ -147,6 +160,16 @@ export interface Database {
         Row: SeasonRow;
         Insert: Partial<SeasonRow> & { championship_id: string; name: string };
         Update: Partial<SeasonRow>;
+      };
+      season_awards: {
+        Row: SeasonAwardRow;
+        Insert: Partial<SeasonAwardRow> & {
+          championship_id: string;
+          season_id: string;
+          name: string;
+          kind: AwardKind;
+        };
+        Update: Partial<SeasonAwardRow>;
       };
       teams: {
         Row: TeamRow;

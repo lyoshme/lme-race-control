@@ -20,6 +20,7 @@ import { DISCIPLINE_LABELS } from '@/types';
 import { DriversTable } from '@/features/standings/DriversTable';
 import { TeamsTable } from '@/features/standings/TeamsTable';
 import { StagesHistoryTab } from '@/features/stages/StagesHistoryTab';
+import { AwardsSection } from '@/features/awards/AwardsSection';
 import { CountryFlag } from '@/components/ui/CountryFlag';
 
 interface Props {
@@ -161,6 +162,7 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
       : DISCIPLINE_LABELS[championship.discipline];
 
   const initialized = standings?.initialized;
+  const selectedSeason = seasons?.find((s) => s.id === seasonId) ?? null;
 
   return (
     <>
@@ -246,6 +248,9 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
             { key: 'teams', label: 'Команды', badge: teams.length ? String(teams.length) : undefined },
             { key: 'participants', label: 'Участники' },
             { key: 'stages', label: 'Этапы' },
+            ...(selectedSeason?.hasAwards
+              ? [{ key: 'awards' as const, label: 'Награды' }]
+              : []),
           ]}
           active={tab}
           onChange={setPublicTab}
@@ -281,6 +286,21 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
           {tab === 'stages' && (
             <StagesHistoryTab stages={stages} drivers={drivers} teams={teams} />
           )}
+          {tab === 'awards' &&
+            (selectedSeason?.hasAwards ? (
+              <AwardsSection
+                championshipId={championshipId}
+                seasonId={seasonId}
+                drivers={drivers}
+                teams={teams}
+              />
+            ) : (
+              <EmptyState
+                icon={<Clock size={36} />}
+                title="Вкладка недоступна"
+                description="Для выбранного сезона вкладка «Награды» не включена."
+              />
+            ))}
         </div>
       </div>
     </>

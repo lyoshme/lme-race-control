@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, RotateCcw, Flag, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -64,14 +64,27 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
   const stages = stagesQ.data ?? [];
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Отдельные пилоты — одиночки и пилоты команд, не включённых в чемпионат
+  const [selectedSolo, setSelectedSolo] = useState<Set<string>>(new Set());
   const [confirmReset, setConfirmReset] = useState(false);
+
+  // Пилоты, доступные для индивидуального включения: без команды либо в
+  // командах, не выбранных для чемпионата (пилоты выбранных команд
+  // попадают в зачёт автоматически через selectedTeamIds)
+  const selectedTeamSet = useMemo(() => new Set(selected), [selected]);
+  const soloCandidates = useMemo(
+    () => drivers.filter((d) => !d.teamId || !selectedTeamSet.has(d.teamId)),
+    [drivers, selectedTeamSet],
+  );
 
   // Сбрасываем выбор при смене чемпионата/сезона и при появлении данных
   useEffect(() => {
     if (standings?.initialized) {
       setSelected(new Set(standings.selectedTeamIds));
+      setSelectedSolo(new Set(standings.selectedDriverIds ?? []));
     } else {
       setSelected(new Set(teams.map((t) => t.id)));
+      setSelectedSolo(new Set(drivers.filter((d) => !d.teamId).map((d) => d.id)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [standings?.initialized, championshipId, seasonId]);
@@ -91,14 +104,34 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
   function selectNone() {
     setSelected(new Set());
   }
+  function toggleSolo(id: string) {
+    if (standings?.initialized) return;
+    setSelectedSolo((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function selectAllSolo() {
+    setSelectedSolo(new Set(soloCandidates.map((d) => d.id)));
+  }
+  function selectNoneSolo() {
+    setSelectedSolo(new Set());
+  }
 
   async function initialize() {
-    const selectedTeams = teams.filter((t) => selected.has(t.id));
-    if (selectedTeams.length === 0) {
-      toast.error('Выберите хотя бы одну команду');
+    const selectedTeamsArr = teams.filter((t) => selected.has(t.id));
+    const selectedSoloDrivers = drivers.filter((d) => selectedSolo.has(d.id));
+    if (selectedTeamsArr.length === 0 && selectedSoloDrivers.length === 0) {
+      toast.error('Выберите хотя бы одну команду или пилота');
       return;
     }
-    const selectedDrivers = drivers.filter((d) => d.teamId && selected.has(d.teamId));
+    // Пилоты выбранных команд — весь ростер этих команд
+    const selectedDrivers = [
+      ...selectedTeamsArr.flatMap((t) => drivers.filter((d) => d.teamId === t.id)),
+      ...selectedSoloDrivers,
+    ];
     if (selectedDrivers.length === 0) {
       toast.error('У выбранных команд нет пилотов');
       return;
@@ -109,7 +142,7 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
       driverPoints[d.id] = { points: 0, wins: 0, podiums: 0 };
     }
     const teamPoints: Standings['teamPoints'] = {};
-    for (const t of selectedTeams) {
+    for (const t of selectedTeamsArr) {
       teamPoints[t.id] = 0;
     }
 
@@ -117,7 +150,8 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
       championshipId,
       seasonId,
       initialized: true,
-      selectedTeamIds: selectedTeams.map((t) => t.id),
+      selectedTeamIds: selectedTeamsArr.map((t) => t.id),
+      selectedDriverIds: selectedSoloDrivers.map((d) => d.id),
       driverPoints,
       teamPoints,
     };
@@ -155,12 +189,12 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
     await reset();
   }
 
-  if (teams.length === 0 || drivers.length === 0) {
+  if (drivers.length === 0) {
     return (
       <EmptyState
         icon={<Flag size={36} />}
-        title="Нет команд или пилотов"
-        description="Перед инициализацией таблиц добавьте команды и пилотов на вкладке «Команды и пилоты»."
+        title={teams.length === 0 ? 'Нет команд или пилотов' : 'Нет пилотов'}
+        description="Перед инициализацией таблиц добавьте пилотов (и по желанию команды) на вкладке «Команды и пилоты»."
       />
     );
   }
@@ -169,7 +203,8 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
     const eligibleDriversCount = drivers.filter(
       (d) =>
         d.id in standings.driverPoints ||
-        (d.teamId && standings.selectedTeamIds.includes(d.teamId)),
+        (d.teamId && standings.selectedTeamIds.includes(d.teamId)) ||
+        standings.selectedDriverIds.includes(d.id),
     ).length;
 
     return (
@@ -234,9 +269,11 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
       <div className="bg-ink-card border border-ink-border rounded p-4 flex items-start gap-3">
         <AlertTriangle size={20} className="text-lime-primary shrink-0 mt-0.5" />
         <div className="text-sm text-text-secondary">
-          Выберите команды, которые участвуют в чемпионате. После инициализации
-          таблицы станут публичными, а все пилоты выбранных команд получат
-          стартовые позиции с нулевыми очками.
+          Выберите команды и отдельных пилотов, которые участвуют в чемпионате.
+          После инициализации таблицы станут публичными, а выбранные участники
+          получат стартовые позиции с нулевыми очками. Пилоти команд,
+          не выбранных ниже, можно включить индивидуально в блоке
+          «Отдельные пилоты».
         </div>
       </div>
 
@@ -298,12 +335,74 @@ export function StandingsInitTab({ championshipId, seasonId, permissions }: Prop
         })}
       </div>
 
+      {soloCandidates.length > 0 && (
+        <>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base uppercase tracking-section font-bold">
+              Отдельные пилоты ({selectedSolo.size}/{soloCandidates.length})
+            </h3>
+            {canWrite && (
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={selectAllSolo}>
+                  Все
+                </Button>
+                <Button variant="ghost" size="sm" onClick={selectNoneSolo}>
+                  Снять
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {soloCandidates.map((d) => {
+              const isSelected = selectedSolo.has(d.id);
+              const soloTeam = d.teamId
+                ? teams.find((t) => t.id === d.teamId)?.name
+                : null;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => canWrite && toggleSolo(d.id)}
+                  disabled={!canWrite}
+                  className={[
+                    'flex items-center gap-3 p-3 border rounded transition text-left',
+                    isSelected
+                      ? 'bg-lime-primary/10 border-lime-primary'
+                      : 'bg-ink-card border-ink-border hover:border-lime-primary/50',
+                  ].join(' ')}
+                >
+                  <span
+                    className={[
+                      'w-5 h-5 border rounded flex items-center justify-center shrink-0',
+                      isSelected
+                        ? 'bg-lime-primary border-lime-primary'
+                        : 'border-ink-border',
+                    ].join(' ')}
+                  >
+                    {isSelected && <Check size={14} className="text-ink-deep" />}
+                  </span>
+                  <Avatar src={d.photo} name={`${d.firstName} ${d.lastName}`} size={36} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold truncate">
+                      {d.firstName} {d.lastName}
+                    </div>
+                    <div className="text-xs text-text-secondary">
+                      {soloTeam ? `Команда: ${soloTeam}` : 'Без команды'}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {canWrite && (
         <div className="flex justify-end pt-2">
           <Button
             icon={<Check size={16} />}
             onClick={initialize}
-            disabled={selected.size === 0}
+            disabled={selected.size === 0 && selectedSolo.size === 0}
           >
             Инициализировать чемпионат
           </Button>

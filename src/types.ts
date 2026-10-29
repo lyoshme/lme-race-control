@@ -36,6 +36,21 @@ export interface Season {
   isActive: boolean;
   finishedAt: number | null;
   createdAt: number;
+  /** Публичная вкладка «Награды» включена (см. миграцию 0070). */
+  hasAwards: boolean;
+}
+
+export type AwardKind = 'driver' | 'team';
+
+export interface SeasonAward {
+  id: string;
+  championshipId: string;
+  seasonId: string;
+  name: string;
+  kind: AwardKind;
+  winnerDriverId: string | null;
+  winnerTeamId: string | null;
+  createdAt: number;
 }
 
 export interface Team {
@@ -82,6 +97,8 @@ export interface Standings {
   seasonId: string;
   initialized: boolean;
   selectedTeamIds: string[];
+  /** Пилоты, включённые в чемпионат индивидуально (команды нет или не выбрана). */
+  selectedDriverIds: string[];
   driverPoints: Record<string, DriverPointsRow>;
   teamPoints: Record<string, number>;
 }
@@ -169,4 +186,9 @@ export const STAGE_TYPE_LABELS: Record<StageType, string> = {
   race: 'Гонка',
   qualifying: 'Квалификация',
   sprint: 'Спринт',
+};
+
+export const AWARD_KIND_LABELS: Record<AwardKind, string> = {
+  driver: 'Пилот',
+  team: 'Команда',
 };

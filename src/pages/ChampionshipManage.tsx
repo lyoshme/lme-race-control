@@ -20,6 +20,7 @@ import { ScoringTab } from '@/features/scoring/ScoringTab';
 import { StandingsInitTab } from '@/features/standings/StandingsInitTab';
 import { StagesTab } from '@/features/stages/StagesTab';
 import { EditorsTab } from '@/features/championship/EditorsTab';
+import { AwardsTab } from '@/features/awards/AwardsTab';
 
 interface Props {
   championshipId: string;
@@ -115,6 +116,7 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
     if (isOwner || isAdmin) {
       base.push({ key: 'editors', label: 'Редакторы' });
       base.push({ key: 'seasons', label: 'Сезоны' });
+      base.push({ key: 'awards', label: 'Награды' });
     }
     return base;
   }, [isOwner, isAdmin]);
@@ -245,6 +247,9 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
         {tab === 'editors' && (isOwner || isAdmin) && <EditorsTab championshipId={championshipId} />}
         {tab === 'seasons' && (isOwner || isAdmin) && (
           <SeasonsTab championshipId={championshipId} currentSeasonId={seasonId} onSeasonChange={setSeasonId} />
+        )}
+        {tab === 'awards' && (isOwner || isAdmin) && (
+          <AwardsTab championshipId={championshipId} seasonId={seasonId} permissions={permissions} />
         )}
       </div>
     </div>

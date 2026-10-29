@@ -1,5 +1,6 @@
 export * as championships from './championships';
 export * as seasons from './seasons';
+export * as awards from './awards';
 export * as teams from './teams';
 export * as drivers from './drivers';
 export * as scoring from './scoring';

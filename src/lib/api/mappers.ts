@@ -7,6 +7,7 @@ import type {
   Driver,
   ScoringSystem,
   Season,
+  SeasonAward,
   Stage,
   StageResultRow,
   Standings,
@@ -17,6 +18,7 @@ import type {
   DriverRow,
   ScoringSystemRow,
   SeasonRow,
+  SeasonAwardRow,
   StageRow,
   StandingsRow,
   TeamRow,
@@ -88,6 +90,7 @@ export function rowToSeason(r: SeasonRow): Season {
     isActive: r.is_active,
     finishedAt: r.finished_at ? new Date(r.finished_at).getTime() : null,
     createdAt: new Date(r.created_at).getTime(),
+    hasAwards: r.has_awards ?? false,
   };
 }
 
@@ -97,6 +100,44 @@ export function seasonToInsert(s: { championshipId: string; name: string }): Par
     name: s.name,
     is_active: true,
   };
+}
+
+/* -------------------- SeasonAward -------------------- */
+export function rowToSeasonAward(r: SeasonAwardRow): SeasonAward {
+  return {
+    id: r.id,
+    championshipId: r.championship_id,
+    seasonId: r.season_id,
+    name: r.name,
+    kind: r.kind,
+    winnerDriverId: r.winner_driver_id ?? null,
+    winnerTeamId: r.winner_team_id ?? null,
+    createdAt: new Date(r.created_at).getTime(),
+  };
+}
+
+export function seasonAwardToInsert(
+  a: Omit<SeasonAward, 'id' | 'createdAt'>,
+): Partial<SeasonAwardRow> {
+  return {
+    championship_id: a.championshipId,
+    season_id: a.seasonId,
+    name: a.name,
+    kind: a.kind,
+    winner_driver_id: a.winnerDriverId ?? null,
+    winner_team_id: a.winnerTeamId ?? null,
+  };
+}
+
+export function seasonAwardToUpdate(patch: Partial<SeasonAward>): Partial<SeasonAwardRow> {
+  const out: Partial<SeasonAwardRow> = {};
+  if (patch.name !== undefined) out.name = patch.name;
+  if (patch.kind !== undefined) out.kind = patch.kind;
+  if (patch.winnerDriverId !== undefined)
+    out.winner_driver_id = patch.winnerDriverId ?? null;
+  if (patch.winnerTeamId !== undefined)
+    out.winner_team_id = patch.winnerTeamId ?? null;
+  return out;
 }
 
 /* -------------------- Team -------------------- */
@@ -213,6 +254,7 @@ export function rowToStandings(r: StandingsRow): Standings {
     seasonId: r.season_id,
     initialized: r.initialized,
     selectedTeamIds: r.selected_team_ids ?? [],
+    selectedDriverIds: r.selected_driver_ids ?? [],
     driverPoints: r.driver_points ?? {},
     teamPoints: r.team_points ?? {},
   };
@@ -224,6 +266,7 @@ export function standingsToUpsert(s: Standings): Partial<StandingsRow> {
     season_id: s.seasonId,
     initialized: s.initialized,
     selected_team_ids: s.selectedTeamIds,
+    selected_driver_ids: s.selectedDriverIds,
     driver_points: s.driverPoints,
     team_points: s.teamPoints,
   };

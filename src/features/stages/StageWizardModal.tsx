@@ -112,14 +112,16 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
   }, [open, championshipId, seasonId]);
 
   // Eligible — пилоты, которые либо есть в standings.driverPoints,
-  // либо состоят в одной из выбранных для чемпионата команд.
+  // либо состоят в одной из выбранных для чемпионата команд, либо
+  // включены в чемпионат индивидуально (см. миграцию 0060).
   const eligibleDrivers = useMemo(() => {
     if (!standings?.initialized) return [];
     const selectedTeamIds = new Set(standings.selectedTeamIds);
     return drivers.filter(
       (d) =>
         d.id in standings.driverPoints ||
-        (d.teamId && selectedTeamIds.has(d.teamId)),
+        (d.teamId && selectedTeamIds.has(d.teamId)) ||
+        standings.selectedDriverIds.includes(d.id),
     );
   }, [drivers, standings]);
 

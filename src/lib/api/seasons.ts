@@ -54,3 +54,13 @@ export async function remove(id: string): Promise<void> {
   const { error } = await supabase.from('seasons').delete().eq('id', id);
   if (error) throw error;
 }
+
+export async function setAwardsEnabled(id: string, enabled: boolean): Promise<void> {
+  // Переключение публичной вкладки «Награды» для сезона (RLS seasons_write:
+  // has_championship_permission(..., 'settings')).
+  const { error } = await supabase
+    .from('seasons')
+    .update({ has_awards: enabled } as never)
+    .eq('id', id);
+  if (error) throw error;
+}
