@@ -108,7 +108,6 @@ export function rowToTeam(r: TeamRow): Team {
     name: r.name,
     color: r.color,
     logo: r.logo_url ?? '',
-    driverIds: r.driver_ids ?? [],
   };
 }
 
@@ -119,7 +118,6 @@ export function teamToInsert(t: Omit<Team, 'id'>): Partial<TeamRow> {
     name: t.name,
     color: t.color,
     logo_url: t.logo || null,
-    driver_ids: t.driverIds ?? [],
   };
 }
 
@@ -128,7 +126,6 @@ export function teamToUpdate(patch: Partial<Team>): Partial<TeamRow> {
   if (patch.name !== undefined) out.name = patch.name;
   if (patch.color !== undefined) out.color = patch.color;
   if (patch.logo !== undefined) out.logo_url = patch.logo || null;
-  if (patch.driverIds !== undefined) out.driver_ids = patch.driverIds;
   return out;
 }
 
@@ -246,19 +243,5 @@ export function rowToStage(r: StageRow): Stage {
     participantIds: r.participant_ids ?? [],
     results: (r.results ?? []) as StageResultRow[],
     createdAt: new Date(r.created_at).getTime(),
-  };
-}
-
-export function stageToInsert(s: Omit<Stage, 'id' | 'createdAt'>): Partial<StageRow> {
-  return {
-    championship_id: s.championshipId,
-    season_id: s.seasonId,
-    name: s.name,
-    track: s.track,
-    stage_date: s.date,
-    type: s.type,
-    scoring_id: s.scoringId || null,
-    participant_ids: s.participantIds,
-    results: s.results,
   };
 }

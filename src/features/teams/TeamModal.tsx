@@ -70,7 +70,6 @@ export function TeamModal({ open, onClose, championshipId, seasonId, team }: Pro
           name: name.trim(),
           logo: logoUrl,
           color,
-          driverIds: [],
         });
         toast.success('Команда добавлена');
       }

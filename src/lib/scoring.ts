@@ -43,8 +43,3 @@ export function makeScoringFromPreset(
     bonusFastestLap: preset.bonusFastestLap ?? 0,
   };
 }
-
-export function pointsForPosition(scoring: ScoringSystem, position: number): number {
-  if (position < 1) return 0;
-  return scoring.points[position - 1] ?? 0;
-}

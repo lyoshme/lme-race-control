@@ -51,7 +51,6 @@ export interface TeamRow {
   name: string;
   color: string;
   logo_url: string | null;
-  driver_ids: string[];
   created_at: string;
 }
 

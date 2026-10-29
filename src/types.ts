@@ -45,7 +45,6 @@ export interface Team {
   name: string;
   logo: string; // base64 или ''
   color: string; // hex
-  driverIds: string[];
 }
 
 export interface Driver {

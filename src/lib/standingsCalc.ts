@@ -1,4 +1,4 @@
-import type { ScoringSystem, Stage, StageResultRow, Standings } from '@/types';
+import type { ScoringSystem, Stage, StageResultRow } from '@/types';
 
 /**
  * Подсчёт очков за позицию + бонусы pole/fastestLap.
@@ -18,71 +18,12 @@ export function calcResultPoints(
 }
 
 /**
- * Применяет результаты этапа к standings (увеличивает очки/победы/подиумы).
- * Не мутирует переданный объект — возвращает новую копию.
- */
-export function applyStageToStandings(
-  standings: Standings,
-  results: StageResultRow[],
-): Standings {
-  const next = cloneStandings(standings);
-  for (const r of results) {
-    applyRow(next, r, +1);
-  }
-  return next;
-}
-
-/**
- * Откат результатов этапа из standings (для удаления / редактирования).
- * Не уходит ниже нуля по победам/подиумам — защита от ручных правок.
- */
-export function revertStageFromStandings(
-  standings: Standings,
-  results: StageResultRow[],
-): Standings {
-  const next = cloneStandings(standings);
-  for (const r of results) {
-    applyRow(next, r, -1);
-  }
-  return next;
-}
-
-function applyRow(s: Standings, r: StageResultRow, sign: 1 | -1): void {
-  let row = s.driverPoints[r.driverId];
-  if (!row && sign === 1) {
-    row = { points: 0, wins: 0, podiums: 0 };
-    s.driverPoints[r.driverId] = row;
-  }
-  if (row) {
-    row.points = Math.max(0, row.points + sign * r.points);
-    if (r.position === 1) {
-      row.wins = Math.max(0, row.wins + sign * 1);
-    }
-    if (r.position >= 1 && r.position <= 3) {
-      row.podiums = Math.max(0, row.podiums + sign * 1);
-    }
-  }
-  if (r.teamId && r.teamId in s.teamPoints) {
-    s.teamPoints[r.teamId] = Math.max(
-      0,
-      s.teamPoints[r.teamId] + sign * r.points,
-    );
-  }
-}
-
-function cloneStandings(s: Standings): Standings {
-  return {
-    ...s,
-    driverPoints: Object.fromEntries(
-      Object.entries(s.driverPoints).map(([k, v]) => [k, { ...v }]),
-    ),
-    teamPoints: { ...s.teamPoints },
-  };
-}
-
-/**
  * Готовит результаты этапа из упорядоченного списка участников.
  * `orderedDriverIds[i]` → позиция i+1.
+ *
+ * NOTE: применением/откатом очков к standings занимается БД (RPC
+ * confirm_stage / delete_stage, миграция 0030) — клиентские
+ * apply/revert-функции удалены, накопление ошибок невозможно.
  */
 export function buildStageResults(args: {
   scoring: ScoringSystem;
