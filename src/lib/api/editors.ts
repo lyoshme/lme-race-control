@@ -3,28 +3,38 @@ import type { ChampionshipEditor, ChampionshipInvite } from '@/types';
 
 /** Список редакторов для указанного чемпионата (с данными профиля). */
 export async function list(championshipId: string): Promise<ChampionshipEditor[]> {
-  const { data, error } = await supabase
-    .from('championship_editors')
-    .select(`
-      *,
-      profile:profiles(email, display_name)
-    `)
-    .eq('championship_id', championshipId)
-    .order('created_at', { ascending: true });
+  // После RLS-правки 0003 владелец чемпионата не может читать чужие профили
+  // напрямую (select с вложенным профилем фильтруется RLS). RPC
+  // list_championship_editors (миграция 0040) даёт скоупированный доступ:
+  // профили только редакторов этого чемпионата, только для его владельца/админа.
+  const { data, error } = await supabase.rpc('list_championship_editors', {
+    cid: championshipId,
+  } as never);
 
   if (error) throw error;
 
-  return (data ?? []).map((row: any) => ({
-    id: row.id,
-    championshipId: row.championship_id,
+  type EditorRow = {
+    user_id: string;
+    can_manage_settings: boolean;
+    can_manage_teams: boolean;
+    can_manage_scoring: boolean;
+    can_manage_stages: boolean;
+    created_at: string;
+    email: string | null;
+    display_name: string | null;
+  };
+
+  return ((data ?? []) as EditorRow[]).map((row) => ({
+    id: row.user_id,
+    championshipId,
     userId: row.user_id,
     canManageSettings: row.can_manage_settings,
     canManageTeams: row.can_manage_teams,
     canManageScoring: row.can_manage_scoring,
     canManageStages: row.can_manage_stages,
     createdAt: new Date(row.created_at).getTime(),
-    userEmail: row.profile?.email,
-    userDisplayName: row.profile?.display_name || undefined,
+    userEmail: row.email ?? undefined,
+    userDisplayName: row.display_name ?? undefined,
   }));
 }
 

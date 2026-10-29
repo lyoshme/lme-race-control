@@ -14,13 +14,17 @@
 --  4) Для нового чемпионата автоматически создаётся активный сезон «Сезон 1»
 --     (триггер) + бэкфилл для чемпионатов, созданных до этой миграции.
 --
--- Безопасно запускать повторно.
+-- Безопасно запускать повторно (всё содержимое идемпотентно).
 -- ============================================================================
 
+BEGIN;
 -- ----------------------------------------------------------------------------
 -- 1. Пересчёт standings из истории этапов сезона (внутренняя функция, не для API)
 -- ----------------------------------------------------------------------------
-create or replace function public.recalc_standings(champ_id uuid, season_id uuid)
+-- Имена параметров обязательно с префиксом p_: имя season_id совпало бы
+-- с колонкой standings.season_id → ошибка "ambiguous reference" в plpgsql
+-- при первом выполнении (PL/pgSQL.variable_conflict по умолчанию = error).
+create or replace function public.recalc_standings(p_champ uuid, p_season uuid)
 returns void
 language plpgsql
 security definer
@@ -43,8 +47,8 @@ begin
   select initialized
     into v_initialized
     from public.standings
-   where championship_id = champ_id
-     and season_id = season_id
+   where championship_id = p_champ
+     and season_id = p_season
      for update;
 
   -- Таблицы не инициализированы — пересчитывать нечего
@@ -59,8 +63,8 @@ begin
   for v_stage in
     select results
       from public.stages
-     where championship_id = champ_id
-       and season_id = season_id
+     where championship_id = p_champ
+       and season_id = p_season
      order by created_at
   loop
     for v_res in
@@ -101,8 +105,8 @@ begin
      set driver_points = v_dp,
          team_points = v_tp,
          updated_at = now()
-   where championship_id = champ_id
-     and season_id = season_id;
+   where championship_id = p_champ
+     and season_id = p_season;
 end;
 $$;
 
@@ -110,14 +114,17 @@ $$;
 -- 2. Подтверждение этапа: вставка этапа + применение очков — одна транзакция
 -- ----------------------------------------------------------------------------
 create or replace function public.confirm_stage(
+  -- Все параметры обязательные — клиент передаёт их явно. Дефолты не ставим:
+  -- после параметра со значением по умолчанию все последующие тоже должны
+  -- иметь дефолт (иначе ошибка 42P13).
   champ_id uuid,
   season_id uuid,
   stage_name text,
   stage_track text,
   stage_date date,
-  stage_type stage_type default 'race',
-  scoring_id uuid default null,
-  participant_ids uuid[] default '{}',
+  stage_type stage_type,
+  scoring_id uuid,
+  participant_ids uuid[],
   results jsonb
 )
 returns uuid
@@ -292,17 +299,51 @@ create trigger trg_after_champ_ins_season
   after insert on public.championships
   for each row execute function public.create_default_season();
 
--- Бэкфилл для чемпионатов, созданных до появления триггера
+-- Бэкфилл для чемпионатов, созданных до появления триггера.
+-- ВАЖНО: алиасы обязательны — «id» без квалификации внутри подзапроса
+-- разрешился бы в seasons.id, а не championships.id.
 do $$
 declare
   champ record;
+  v_season_id uuid;
 begin
+  -- 1) Чемпионаты совсем без сезонов — создаём «Сезон 1»
   for champ in
-    select id from public.championships
-     where not exists (select 1 from public.seasons where championship_id = id)
+    select c.id from public.championships c
+     where not exists (
+       select 1 from public.seasons s where s.championship_id = c.id
+     )
   loop
     insert into public.seasons (championship_id, name, is_active)
     values (champ.id, 'Сезон 1', true);
+  end loop;
+
+  -- 2) Чемпионаты, у которых сезоны есть, но активного нет — устраняем
+  --    последствия старого бага немонолитного create (окно с 0 активных сезонов).
+  --    Активируем самый свежий сезон.
+  for champ in
+    select c.id from public.championships c
+     where exists (
+         select 1 from public.seasons s where s.championship_id = c.id
+       )
+       and not exists (
+         select 1 from public.seasons s
+          where s.championship_id = c.id
+            and s.is_active
+       )
+  loop
+    select s.id into v_season_id
+      from public.seasons s
+     where s.championship_id = champ.id
+     order by s.created_at desc
+     limit 1;
+
+    if v_season_id is not null then
+      update public.seasons
+         set is_active = true,
+             finished_at = null
+       where id = v_season_id;
+    end if;
   end loop;
 end $$;
 
@@ -321,3 +362,5 @@ grant execute on function public.confirm_stage(uuid, uuid, text, text, date, sta
 grant execute on function public.delete_stage(uuid) to authenticated, service_role;
 grant execute on function public.create_season(uuid, text) to authenticated, service_role;
 grant execute on function public.set_active_season(uuid) to authenticated, service_role;
+
+COMMIT;

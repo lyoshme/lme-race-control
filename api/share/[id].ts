@@ -17,7 +17,11 @@ export default async function handler(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const id = url.pathname.split('/').pop() || '';
 
-  if (!id) {
+  // Валидация UUID: значение попадает в HTML-шаблон (meta/JS-redirect) —
+  // не пропускаем ничего, что не может быть ключом чемпионата.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  if (!id || !UUID_RE.test(id)) {
     return new Response('Not found', { status: 404 });
   }
 
@@ -32,11 +36,14 @@ export default async function handler(request: Request): Promise<Response> {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // Соц-карточки — только для публичных чемпионатов: approved и не hidden
+  // (синхронно с лентой главной страницы: hidden доступен только по прямой ссылке).
   const { data, error } = await supabase
     .from('championships')
     .select('title, description, banner_url, status')
     .eq('id', id)
     .eq('status', 'approved')
+    .eq('is_hidden', false)
     .maybeSingle();
 
   if (error || !data) {
