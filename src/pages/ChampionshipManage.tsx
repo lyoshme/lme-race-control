@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ChevronLeft, Eye, Lock } from 'lucide-react';
 import { Tabs } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
@@ -9,6 +9,7 @@ import { useRouter } from '@/router';
 import type { ManageTab } from '@/router';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import { usePersistedSeason } from '@/hooks/seasonMemory';
 import * as api from '@/lib/api';
 import type { Championship, ChampionshipEditor, Season } from '@/types';
 
@@ -50,14 +51,10 @@ export function ChampionshipManage({ championshipId, tab }: Props) {
     [{ table: 'seasons', filter: `championship_id=eq.${championshipId}` }],
     [championshipId],
   );
-  const [seasonId, setSeasonId] = useState<string>('');
-  const activeSeason = seasons?.find((s) => s.isActive) ?? seasons?.[0];
-
-  useEffect(() => {
-    if (activeSeason && !seasonId) {
-      setSeasonId(activeSeason.id);
-    }
-  }, [activeSeason, seasonId]);
+  // Выбор сезона переживает переходы между вкладками/страницами и перезагрузку
+  // (см. hooks/seasonMemory): раньше возврат в управление сбрасывал сезон
+  // на активный.
+  const [seasonId, setSeasonId] = usePersistedSeason(championshipId, seasons);
 
   const editorRecordFetcher = useCallback(
     () =>

@@ -12,6 +12,7 @@ import type { PublicTab } from '@/router';
 import { useAuth } from '@/hooks/useAuth';
 import { useEntranceOnce } from '@/hooks/useEntranceOnce';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
+import { rememberPublicTab, usePersistedSeason } from '@/hooks/seasonMemory';
 import { useToast } from '@/components/toast/ToastContext';
 import * as api from '@/lib/api';
 import type { Championship, Driver, Season, Stage, Standings, Team } from '@/types';
@@ -33,7 +34,6 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
   const { session, profile } = useAuth();
   const toast = useToast();
   const entrance = useEntranceOnce(`public:${championshipId}`);
-  const [seasonId, setSeasonId] = useState<string>('');
 
   const champFetcher = useCallback(
     () => api.championships.getById(championshipId),
@@ -43,6 +43,25 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
     () => api.seasons.list(championshipId),
     [championshipId],
   );
+
+  const champFilter = `id=eq.${championshipId}`;
+  const seasonFilter = `championship_id=eq.${championshipId}`;
+
+  const champQ = useSupabaseQuery<Championship | null>(
+    champFetcher,
+    [{ table: 'championships', filter: champFilter }],
+    [championshipId],
+  );
+  const { data: seasons } = useSupabaseQuery<Season[]>(
+    seasonsFetcher,
+    [{ table: 'seasons', filter: seasonFilter }],
+    [championshipId],
+  );
+
+  // Выбор сезона переживает переходы (профиль пилота → назад) и перезагрузку:
+  // сохраняется только явный выбор пользователя (см. hooks/seasonMemory).
+  const [seasonId, setSeasonId] = usePersistedSeason(championshipId, seasons);
+
   const teamsFetcher = useCallback(
     () => seasonId ? api.teams.list(championshipId, seasonId) : Promise.resolve([]),
     [championshipId, seasonId],
@@ -60,19 +79,6 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
     [championshipId, seasonId],
   );
 
-  const champFilter = `id=eq.${championshipId}`;
-  const seasonFilter = `championship_id=eq.${championshipId}`;
-
-  const champQ = useSupabaseQuery<Championship | null>(
-    champFetcher,
-    [{ table: 'championships', filter: champFilter }],
-    [championshipId],
-  );
-  const { data: seasons } = useSupabaseQuery<Season[]>(
-    seasonsFetcher,
-    [{ table: 'seasons', filter: seasonFilter }],
-    [championshipId],
-  );
   const teamsQ = useSupabaseQuery<Team[]>(
     teamsFetcher,
     [{ table: 'teams', filter: `championship_id=eq.${championshipId}${seasonId ? `,season_id=eq.${seasonId}` : ''}` }],
@@ -94,12 +100,11 @@ export function ChampionshipPublic({ championshipId, tab }: Props) {
     [championshipId, seasonId],
   );
 
+  // Запоминаем вкладку публичной страницы: возврат «Назад к чемпионату»
+  // из профиля пилота вернёт туда, откуда ушли (см. hooks/seasonMemory).
   useEffect(() => {
-    if (seasons && seasons.length > 0 && !seasonId) {
-      const active = seasons.find((s) => s.isActive) ?? seasons[seasons.length - 1];
-      setSeasonId(active.id);
-    }
-  }, [seasons, seasonId]);
+    rememberPublicTab(championshipId, tab);
+  }, [championshipId, tab]);
 
   const championship = champQ.data;
   const teams = teamsQ.data ?? [];

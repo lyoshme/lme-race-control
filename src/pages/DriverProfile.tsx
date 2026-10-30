@@ -8,10 +8,27 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CountryFlag } from '@/components/ui/CountryFlag';
 import { useRouter } from '@/router';
+import type { PublicTab } from '@/router';
+import { readRememberedPublicTab, rememberSeason } from '@/hooks/seasonMemory';
 import { useEntranceOnce } from '@/hooks/useEntranceOnce';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import * as api from '@/lib/api';
 import type { Driver, Season, Stage, Standings, Team } from '@/types';
+
+/* Возврат «Назад к чемпионату» возвращает к вкладке, где пользователь был:
+   вкладка запоминается при просмотре публичной страницы (см. seasonMemory). */
+const PUBLIC_TAB_KEYS: PublicTab[] = [
+  'overview',
+  'drivers',
+  'teams',
+  'participants',
+  'stages',
+  'awards',
+];
+function rememberedPublicTab(championshipId: string): PublicTab {
+  const value = readRememberedPublicTab(championshipId);
+  return PUBLIC_TAB_KEYS.includes(value as PublicTab) ? (value as PublicTab) : 'overview';
+}
 
 interface Props {
   championshipId: string;
@@ -61,6 +78,12 @@ export function DriverProfile({ championshipId, driverId }: Props) {
   }, [seasons, championshipId, driverId, foundSeasonId]);
 
   const seasonId = foundSeasonId;
+
+  // Просмотренный сезон профиля запоминаем: «Назад к чемпионату» вернёт
+  // на тот же сезон, каким его видел пользователь.
+  useEffect(() => {
+    if (seasonId) rememberSeason(championshipId, seasonId);
+  }, [championshipId, seasonId]);
 
   const teamsFetcher = useCallback(
     () => api.teams.list(championshipId, seasonId),
@@ -113,7 +136,11 @@ export function DriverProfile({ championshipId, driverId }: Props) {
           title="Пилот не найден"
           description="Возможно, пилот был удалён или ссылка неверна."
           action={
-            <Button variant="secondary" icon={<ChevronLeft size={16} />} onClick={() => goPublic(championshipId)}>
+            <Button
+              variant="secondary"
+              icon={<ChevronLeft size={16} />}
+              onClick={() => goPublic(championshipId, rememberedPublicTab(championshipId))}
+            >
               Назад к чемпионату
             </Button>
           }
