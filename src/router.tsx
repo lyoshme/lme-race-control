@@ -30,6 +30,21 @@ const Ctx = createContext<RouterCtx | null>(null);
 
 function parseHash(): Route {
   if (typeof window === 'undefined') return { view: 'landing' };
+
+  // Шеринг-ссылка /share/<uuid> (без хеша) отдается catch-all рероутом
+  // на SPA, когда Edge-функция OG недоступна. Разыменовываем в маршрут
+  // чемпионата прямо тут — иначе получалась «главная страница».
+  const shareMatch = window.location.pathname.match(
+    /^\/share\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
+  );
+  if (shareMatch && !window.location.hash) {
+    window.history.replaceState(
+      null,
+      '',
+      `/#/championship/${shareMatch[1]}/overview`,
+    );
+  }
+
   const hash = window.location.hash.replace(/^#\/?/, '');
   if (!hash) return { view: 'landing' };
   const parts = hash.split('/').filter(Boolean);
