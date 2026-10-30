@@ -46,7 +46,7 @@ function Router() {
           <DriverProfile championshipId={route.championshipId} driverId={route.driverId} />
         )}
       </main>
-      <footer className="border-t border-ink-border py-6 text-center text-xs text-text-muted uppercase tracking-badge">
+      <footer className="border-t border-ink-border pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-center text-xs text-text-muted uppercase tracking-badge">
         LMERC © {new Date().getFullYear()}
       </footer>
     </div>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Flag, LogIn, Moon, Sun } from 'lucide-react';
+import { Download, Flag, LogIn, Moon, Sun } from 'lucide-react';
 import type { Route } from '@/router';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
+import { useInstallPrompt } from '@/hooks/usePwa';
 import { Button } from '@/components/ui/Button';
 import { AuthModal } from '@/features/auth/AuthModal';
 import { UserMenu } from '@/features/auth/UserMenu';
@@ -15,6 +16,7 @@ interface Props {
 export function Header({ goHome, current }: Props) {
   const { theme, toggle } = useTheme();
   const { session, initializing } = useAuth();
+  const { canInstall, promptInstall } = useInstallPrompt();
   const [authOpen, setAuthOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -31,7 +33,7 @@ export function Header({ goHome, current }: Props) {
         scrolled ? 'hero-gradient-border' : '',
       ].join(' ')}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between gap-4">
         <button
           onClick={goHome}
           className="flex items-center gap-2 group"
@@ -47,6 +49,16 @@ export function Header({ goHome, current }: Props) {
             <span className="text-xs uppercase tracking-badge text-text-secondary hidden lg:block">
               Платформа автоспортивных чемпионатов
             </span>
+          )}
+          {canInstall && (
+            <button
+              onClick={promptInstall}
+              className="p-2 rounded text-text-secondary hover:text-lime-primary hover:bg-ink-elevated transition"
+              aria-label="Установить приложение LMERC"
+              title="Установить приложение"
+            >
+              <Download size={18} />
+            </button>
           )}
           <button
             onClick={toggle}
