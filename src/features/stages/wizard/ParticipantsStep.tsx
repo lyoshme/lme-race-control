@@ -1,16 +1,30 @@
-import { useMemo } from 'react';
-import { Check, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  Check,
+  ChevronDown,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Info,
+  Search,
+  User,
+  Users,
+  X,
+} from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { CountryFlag } from '@/components/ui/CountryFlag';
 import type { Driver, Team } from '@/types';
 
 interface Props {
-  drivers: Driver[]; // eligible (в standings)
+  /** Все пилоты сезона — не только включённые в зачёт. */
+  drivers: Driver[];
   teams: Team[];
   participantIds: string[];
   onChange: (ids: string[]) => void;
 }
+
+/** Ключ секции: id команды либо `__solo__` для блока индивидуальных пилотов. */
+const SOLO_KEY = '__solo__';
 
 export function ParticipantsStep({
   drivers,
@@ -18,154 +32,366 @@ export function ParticipantsStep({
   participantIds,
   onChange,
 }: Props) {
-  const selected = useMemo(() => new Set(participantIds), [participantIds]);
+  const [query, setQuery] = useState('');
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
+  const selected = useMemo(() => new Set(participantIds), [participantIds]);
+  const q = query.trim().toLowerCase();
+
+  // Поиск: имя, фамилия, номер, название команды
+  const filtered = useMemo(() => {
+    if (!q) return drivers;
+    const teamNames = new Map(teams.map((t) => [t.id, t.name.toLowerCase()]));
+    return drivers.filter((d) => {
+      const fullName = `${d.firstName} ${d.lastName}`.toLowerCase();
+      if (fullName.includes(q) || String(d.number).includes(q)) return true;
+      if (d.teamId && (teamNames.get(d.teamId) ?? '').includes(q)) return true;
+      return false;
+    });
+  }, [drivers, teams, q]);
+
+  // Группировка отфильтрованных пилотов по командам; команда, отсутствующая
+  // в списке (крайний случай после удаления), попадает в блок одиночек.
   const grouped = useMemo(() => {
+    const teamSet = new Set(teams.map((t) => t.id));
     const byTeam = new Map<string | null, Driver[]>();
-    for (const d of drivers) {
-      const key = d.teamId ?? null;
+    for (const d of filtered) {
+      const key = d.teamId && teamSet.has(d.teamId) ? d.teamId : null;
       const arr = byTeam.get(key) ?? [];
       arr.push(d);
       byTeam.set(key, arr);
     }
     return byTeam;
-  }, [drivers]);
+  }, [filtered, teams]);
 
-  function toggle(id: string) {
+  if (drivers.length === 0) {
+    return (
+      <div className="text-center py-6 text-text-muted text-sm">
+        В этом сезоне пока нет пилотов — добавьте их на вкладке «Команды и пилоты».
+      </div>
+    );
+  }
+
+  /* -------------------- Массовые действия -------------------- */
+
+  // В активным поиском «Все»/«Снять» работают только с тем, что видно.
+  function toggleVisible() {
+    const next = new Set(selected);
+    const allVisible = filtered.length > 0 && filtered.every((d) => selected.has(d.id));
+    for (const d of filtered) {
+      if (allVisible) next.delete(d.id);
+      else next.add(d.id);
+    }
+    onChange([...next]);
+  }
+  function clearAll() {
+    onChange([]);
+  }
+  function toggleCollapse(key: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+  function collapseAll(expand: boolean) {
+    if (expand) {
+      setCollapsed(new Set());
+      return;
+    }
+    const keys: string[] = [...teams.map((t) => t.id)];
+    if ((grouped.get(null) ?? []).length > 0) keys.push(SOLO_KEY);
+    setCollapsed(new Set(keys));
+  }
+
+  const allCollapsed = collapsed.size > 0 && !q;
+  const solo = grouped.get(null) ?? [];
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Счётчик + массовые действия */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-baseline gap-2 text-sm min-w-0">
+          <Users size={16} className="text-lime-primary self-center shrink-0" />
+          <span className="font-bold tabular">{participantIds.length}</span>
+          <span className="text-text-secondary">
+            из {drivers.length} выбрано
+          </span>
+          {q && (
+            <span className="text-2xs text-text-muted uppercase tracking-badge">
+              · найдено {filtered.length}
+            </span>
+          )}
+        </div>
+        {!q && (
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => collapseAll(!allCollapsed)}
+              title={allCollapsed ? 'Развернуть все команды' : 'Свернуть все команды'}
+            >
+              {allCollapsed ? (
+                <>
+                  <ChevronsUpDown size={14} /> Развернуть
+                </>
+              ) : (
+                <>
+                  <ChevronsDownUp size={14} /> Свернуть
+                </>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleVisible}
+              title={
+                drivers.every((d) => selected.has(d.id))
+                  ? 'Снять всех пилотов'
+                  : 'Выбрать всех пилотов сезона'
+              }
+            >
+              Все
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAll}
+              disabled={participantIds.length === 0}
+            >
+              Снять
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Поиск */}
+      <div className="relative">
+        <Search
+          size={14}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+        />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Поиск по имени, номеру или команде…"
+          aria-label="Поиск пилота"
+          className="w-full bg-ink-surface border border-ink-border rounded pl-9 pr-9 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-lime-primary"
+        />
+        {q && (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            aria-label="Очистить поиск"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary transition"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Подсказка о составе выбора */}
+      <div className="flex items-start gap-1.5 text-xs text-text-muted">
+        <Info size={13} className="mt-0.5 shrink-0" />
+        <span>
+          Показаны все пилоты сезона. По умолчанию выбраны участники чемпионата,
+          но в этап можно добавить любого — он автоматически попадёт в зачёт.
+        </span>
+      </div>
+
+      {/* Карточки команд */}
+      <div className="flex flex-col gap-2 max-h-[52dvh] overflow-y-auto pr-1">
+        {teams.map((team) => {
+          const rows = grouped.get(team.id) ?? [];
+          if (rows.length === 0) return null;
+          return (
+            <TeamCard
+              key={team.id}
+              title={team.name}
+              color={team.color}
+              logo={team.logo}
+              rows={rows}
+              collapsed={collapsed.has(team.id) && !q}
+              onToggleCollapse={() => toggleCollapse(team.id)}
+              selected={selected}
+              onToggleDriver={toggleDriver}
+              onToggleAll={() => toggleSection(team.id)}
+            />
+          );
+        })}
+
+        {solo.length > 0 && (
+          <TeamCard
+            solo
+            title="Индивидуальные пилоты"
+            rows={solo}
+            collapsed={collapsed.has(SOLO_KEY) && !q}
+            onToggleCollapse={() => toggleCollapse(SOLO_KEY)}
+            selected={selected}
+            onToggleDriver={toggleDriver}
+            onToggleAll={() => toggleSection(null)}
+          />
+        )}
+
+        {filtered.length === 0 && (
+          <div className="text-center py-6 text-sm text-text-muted border border-dashed border-ink-border rounded">
+            Ничего не найдено по запросу «{query.trim()}»
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  /* -------------------- Локальные экшены -------------------- */
+
+  function toggleDriver(id: string) {
     const next = new Set(selected);
     if (next.has(id)) next.delete(id);
     else next.add(id);
     onChange([...next]);
   }
-  function selectAll() {
-    onChange(drivers.map((d) => d.id));
-  }
-  function selectNone() {
-    onChange([]);
-  }
 
-  function toggleTeam(teamId: string | null) {
-    const teamDrivers = grouped.get(teamId) ?? [];
-    const allSelected = teamDrivers.every((d) => selected.has(d.id));
+  function toggleSection(key: string | null) {
+    const rows = grouped.get(key) ?? [];
+    if (rows.length === 0) return;
+    const allSelected = rows.every((d) => selected.has(d.id));
     const next = new Set(selected);
-    for (const d of teamDrivers) {
+    for (const d of rows) {
       if (allSelected) next.delete(d.id);
       else next.add(d.id);
     }
     onChange([...next]);
   }
+}
 
-  if (drivers.length === 0) {
-    return (
-      <div className="text-center py-6 text-text-muted text-sm">
-        В чемпионате нет пилотов, допущенных к этапам.
-      </div>
-    );
-  }
+/* ==================================================================== */
+/* Карточка команды (или блока индивидуальных пилотов)                   */
+/* ==================================================================== */
+
+interface TeamCardProps {
+  title: string;
+  color?: string;
+  logo?: string | null;
+  solo?: boolean;
+  rows: Driver[];
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+  selected: Set<string>;
+  onToggleDriver: (id: string) => void;
+  onToggleAll: () => void;
+}
+
+function TeamCard({
+  title,
+  color,
+  logo,
+  solo = false,
+  rows,
+  collapsed,
+  onToggleCollapse,
+  selected,
+  onToggleDriver,
+  onToggleAll,
+}: TeamCardProps) {
+  const selectedCount = rows.filter((d) => selected.has(d.id)).length;
+  const allSelected = selectedCount === rows.length;
+
+  const counterClass =
+    selectedCount === 0
+      ? 'text-text-muted'
+      : allSelected
+        ? 'text-lime-primary'
+        : 'text-text-secondary';
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <Users size={16} className="text-lime-primary" />
-          <span className="font-bold tabular">{participantIds.length}</span>
-          <span className="text-text-secondary">из {drivers.length}</span>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={selectAll}>
-            Все
-          </Button>
-          <Button variant="ghost" size="sm" onClick={selectNone}>
-            Снять
-          </Button>
-        </div>
-      </div>
+    <div
+      className={[
+        'bg-ink-card border rounded overflow-hidden transition',
+        selectedCount > 0 ? 'border-lime-primary/50' : 'border-ink-border',
+      ].join(' ')}
+    >
+      {/* Шапка: чекбокс (весь блок) + название (сворачивание) + счётчик */}
+      <div className="flex items-center gap-3 px-3 py-2.5 border-b border-ink-border">
+        <button
+          type="button"
+          onClick={onToggleAll}
+          title={allSelected ? 'Убрать всех из этапа' : 'Выбрать всех в этап'}
+          className="shrink-0 w-5 h-5 flex items-center justify-center"
+          aria-label={allSelected ? `Убрать всех из «${title}»` : `Включить всех из «${title}»`}
+        >
+          <Checkbox checked={allSelected} indeterminate={selectedCount > 0 && !allSelected} />
+        </button>
 
-      <div className="flex flex-col gap-3 max-h-[55dvh] overflow-y-auto pr-1">
-        {teams.map((team) => {
-          const teamDrivers = grouped.get(team.id) ?? [];
-          if (teamDrivers.length === 0) return null;
-          const allSelected = teamDrivers.every((d) => selected.has(d.id));
-          const someSelected =
-            !allSelected && teamDrivers.some((d) => selected.has(d.id));
-          return (
-            <div
-              key={team.id}
-              className="bg-ink-card border border-ink-border rounded overflow-hidden"
-            >
-              <button
-                type="button"
-                onClick={() => toggleTeam(team.id)}
-                className="w-full flex items-center gap-3 px-3 py-2 border-b border-ink-border hover:bg-ink-elevated transition text-left"
-              >
-                <Checkbox checked={allSelected} indeterminate={someSelected} />
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="flex-1 min-w-0 flex items-center gap-2.5 text-left"
+          aria-expanded={!collapsed}
+        >
+          {solo ? (
+            <span className="w-8 h-8 rounded bg-ink-surface border border-ink-border flex items-center justify-center text-text-muted shrink-0">
+              <User size={14} />
+            </span>
+          ) : (
+            <>
+              {color && (
                 <span
                   className="w-1 h-7 rounded-sm shrink-0"
-                  style={{ backgroundColor: team.color }}
+                  style={{ backgroundColor: color }}
                 />
-                <Avatar src={team.logo} name={team.name} size={28} />
-                <span className="font-bold text-sm flex-1 truncate">
-                  {team.name}
-                </span>
-                <span className="text-2xs tabular text-text-muted uppercase tracking-badge">
-                  {teamDrivers.filter((d) => selected.has(d.id)).length}/
-                  {teamDrivers.length}
-                </span>
-              </button>
-              <div className="p-2 flex flex-col gap-1">
-                {teamDrivers.map((d) => (
-                  <DriverCheckRow
-                    key={d.id}
-                    driver={d}
-                    checked={selected.has(d.id)}
-                    onToggle={() => toggle(d.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+              )}
+              <Avatar src={logo ?? undefined} name={title} size={28} />
+            </>
+          )}
+          <span className="font-bold text-sm truncate">{title}</span>
+        </button>
 
-        {/* «Без команды» */}
-        {(() => {
-          const orphans = grouped.get(null) ?? [];
-          if (orphans.length === 0) return null;
-          const allSelected = orphans.every((d) => selected.has(d.id));
-          const someSelected =
-            !allSelected && orphans.some((d) => selected.has(d.id));
-          return (
-            <div className="bg-ink-card border border-ink-border rounded overflow-hidden">
-              <button
-                type="button"
-                onClick={() => toggleTeam(null)}
-                className="w-full flex items-center gap-3 px-3 py-2 border-b border-ink-border hover:bg-ink-elevated transition text-left"
-              >
-                <Checkbox checked={allSelected} indeterminate={someSelected} />
-                <span className="font-bold text-sm flex-1">Индивидуальные пилоты</span>
-                <span className="text-2xs tabular text-text-muted uppercase tracking-badge">
-                  {orphans.filter((d) => selected.has(d.id)).length}/
-                  {orphans.length}
-                </span>
-              </button>
-              <div className="p-2 flex flex-col gap-1">
-                {orphans.map((d) => (
-                  <DriverCheckRow
-                    key={d.id}
-                    driver={d}
-                    checked={selected.has(d.id)}
-                    onToggle={() => toggle(d.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })()}
+        <span
+          className={[
+            'text-2xs tabular uppercase tracking-badge shrink-0',
+            counterClass,
+          ].join(' ')}
+        >
+          {selectedCount}/{rows.length}
+        </span>
+
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? 'Развернуть' : 'Свернуть'}
+          aria-expanded={!collapsed}
+          className="p-1 text-text-muted hover:text-text-primary transition shrink-0"
+        >
+          <ChevronDown
+            size={14}
+            className={['transition-transform', collapsed ? '' : 'rotate-180'].join(' ')}
+          />
+        </button>
       </div>
+
+      {/* Список пилотов */}
+      {!collapsed && (
+        <div className="p-2 flex flex-col gap-1">
+          {rows.map((d) => (
+            <DriverRow
+              key={d.id}
+              driver={d}
+              checked={selected.has(d.id)}
+              onToggle={() => onToggleDriver(d.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function DriverCheckRow({
+/* ==================================================================== */
+/* Строка пилота                                                         */
+/* ==================================================================== */
+
+function DriverRow({
   driver,
   checked,
   onToggle,
@@ -178,22 +404,29 @@ function DriverCheckRow({
     <button
       type="button"
       onClick={onToggle}
+      aria-pressed={checked}
       className={[
-        'flex items-center gap-3 px-2 py-2 rounded transition text-left w-full',
+        'w-full min-h-[44px] flex items-center gap-3 px-3 py-2 rounded border transition text-left',
         checked
-          ? 'bg-lime-primary/5 border border-lime-primary/30'
-          : 'border border-transparent hover:bg-ink-elevated',
+          ? 'bg-lime-primary/10 border-lime-primary/60'
+          : 'bg-ink-surface border-ink-border hover:border-lime-primary/40 hover:bg-ink-elevated',
       ].join(' ')}
     >
       <Checkbox checked={checked} />
-      <Avatar src={driver.photo} name={`${driver.firstName} ${driver.lastName}`} size={28} />
+      <Avatar
+        src={driver.photo}
+        name={`${driver.firstName} ${driver.lastName}`}
+        size={30}
+      />
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-bold flex items-center gap-1.5">
+        <div className="text-sm font-bold truncate flex items-center gap-1.5">
           {driver.firstName} {driver.lastName}
           {driver.country && <CountryFlag code={driver.country} size={11} />}
         </div>
       </div>
-      <span className="text-xs tabular text-text-secondary">#{driver.number}</span>
+      <span className="text-xs tabular text-text-secondary shrink-0">
+        #{driver.number}
+      </span>
     </button>
   );
 }

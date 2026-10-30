@@ -342,7 +342,10 @@ export function StageWizardModal({ open, onClose, championshipId, seasonId }: Pr
           )}
           {step === 2 && (
             <ParticipantsStep
-              drivers={eligibleDrivers}
+              // Все пилоты сезона: включённые в зачёт должны быть выбраны
+              // по умолчанию (см. эффект ниже), но любой пилот добавляется
+              // в этап индивидуально независимо от команд/зачёта.
+              drivers={drivers}
               teams={teams}
               participantIds={participantIds}
               onChange={setParticipantIds}
