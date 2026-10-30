@@ -4,6 +4,7 @@ import type { Route } from '@/router';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
 import { useInstallPrompt } from '@/hooks/usePwa';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { Button } from '@/components/ui/Button';
 import { AuthModal } from '@/features/auth/AuthModal';
 import { UserMenu } from '@/features/auth/UserMenu';
@@ -50,6 +51,7 @@ export function Header({ goHome, current }: Props) {
               Платформа автоспортивных чемпионатов
             </span>
           )}
+          {!initializing && session && <NotificationBell />}
           {canInstall && (
             <button
               onClick={promptInstall}

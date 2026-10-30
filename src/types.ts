@@ -162,8 +162,42 @@ export interface EditorPermissions {
   isOwner: boolean;
 }
 
+/* -------------------- Уведомления (миграция 0080) -------------------- */
+
+export type NotificationKind =
+  | 'stage_confirmed'
+  | 'championship_moderated'
+  | 'editor_joined';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  championshipId: string | null;
+  kind: NotificationKind;
+  /** JSON-полезная нагрузка от триггеров БД; ключи camelCase (см. 0080). */
+  payload: Record<string, unknown>;
+  isRead: boolean;
+  createdAt: number;
+}
+
 export interface OrganizerTokensMap {
   [championshipId: string]: string;
+}
+
+/* -------------------- Web Push подписки (миграция 0090) -------------------- */
+
+/** Криптоключи подписки из PushSubscription.getKey(). */
+export interface PushKeys {
+  p256dh: string;
+  auth: string;
+}
+
+export interface PushSubscription {
+  id: string;
+  userId: string;
+  endpoint: string;
+  keys: PushKeys;
+  createdAt: number;
 }
 
 /* Справочники */
@@ -191,4 +225,10 @@ export const STAGE_TYPE_LABELS: Record<StageType, string> = {
 export const AWARD_KIND_LABELS: Record<AwardKind, string> = {
   driver: 'Пилот',
   team: 'Команда',
+};
+
+export const NOTIFICATION_KIND_LABELS: Record<NotificationKind, string> = {
+  stage_confirmed: 'Этап подтверждён',
+  championship_moderated: 'Чемпионат одобрен / отклонён',
+  editor_joined: 'Новый со-редактор',
 };

@@ -12,6 +12,8 @@ import type {
   StageResultRow,
   Standings,
   Team,
+  Notification,
+  PushSubscription,
 } from '@/types';
 import type {
   ChampionshipRow,
@@ -22,6 +24,8 @@ import type {
   StageRow,
   StandingsRow,
   TeamRow,
+  NotificationRow,
+  PushSubscriptionRow,
 } from '@/lib/database.types';
 
 /* -------------------- Championship -------------------- */
@@ -269,6 +273,45 @@ export function standingsToUpsert(s: Standings): Partial<StandingsRow> {
     selected_driver_ids: s.selectedDriverIds,
     driver_points: s.driverPoints,
     team_points: s.teamPoints,
+  };
+}
+
+/* -------------------- Notification (миграция 0080) -------------------- */
+export function rowToNotification(r: NotificationRow): Notification {
+  return {
+    id: r.id,
+    userId: r.user_id,
+    championshipId: r.championship_id,
+    kind: r.kind,
+    payload: r.payload ?? {},
+    isRead: r.is_read,
+    createdAt: new Date(r.created_at).getTime(),
+  };
+}
+
+/** Патч «отметить прочитано/непрочитано» (клиент меняет только is_read). */
+export function notificationToReadUpdate(isRead: boolean): Partial<NotificationRow> {
+  return { is_read: isRead };
+}
+
+/* -------------------- PushSubscription (миграция 0090) -------------------- */
+export function rowToPushSubscription(r: PushSubscriptionRow): PushSubscription {
+  return {
+    id: r.id,
+    userId: r.user_id,
+    endpoint: r.endpoint,
+    keys: r.keys,
+    createdAt: new Date(r.created_at).getTime(),
+  };
+}
+
+export function pushSubscriptionToInsert(
+  s: Pick<PushSubscription, 'userId' | 'endpoint' | 'keys'>,
+): Partial<PushSubscriptionRow> {
+  return {
+    user_id: s.userId,
+    endpoint: s.endpoint,
+    keys: s.keys,
   };
 }
 

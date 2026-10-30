@@ -3,7 +3,7 @@
  * Можно регенерировать через `supabase gen types typescript`, но для MVP
  * держим вручную.
  */
-import type { Discipline, AwardKind, StageType } from '@/types';
+import type { Discipline, AwardKind, StageType, NotificationKind, PushKeys } from '@/types';
 
 export type ChampStatus = 'pending' | 'approved' | 'rejected';
 export type ChampLifecycle = 'active' | 'finished';
@@ -143,6 +143,25 @@ export interface ChampionshipInviteRow {
   created_at: string;
 }
 
+export interface NotificationRow {
+  id: string;
+  user_id: string;
+  championship_id: string | null;
+  kind: NotificationKind;
+  /** JSON из триггеров БД (миграция 0080): ключи camelCase. */
+  payload: Record<string, unknown>;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface PushSubscriptionRow {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  keys: PushKeys;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -216,6 +235,22 @@ export interface Database {
         Row: ChampionshipInviteRow;
         Insert: Partial<ChampionshipInviteRow> & { championship_id: string };
         Update: Partial<ChampionshipInviteRow>;
+      };
+      notifications: {
+        Row: NotificationRow;
+        // Вставку делает только БД (триггеры через create_notification);
+        // клиент пишет исключительно is_read (Update).
+        Insert: Partial<NotificationRow> & { user_id: string; kind: NotificationKind };
+        Update: Partial<NotificationRow>;
+      };
+      push_subscriptions: {
+        Row: PushSubscriptionRow;
+        Insert: Partial<PushSubscriptionRow> & {
+          user_id: string;
+          endpoint: string;
+          keys: PushKeys;
+        };
+        Update: Partial<PushSubscriptionRow>;
       };
     };
   };
