@@ -200,8 +200,10 @@ export function ParticipantsStep({
         </span>
       </div>
 
-      {/* Карточки команд */}
-      <div className="flex flex-col gap-2 max-h-[52dvh] overflow-y-auto pr-1">
+      {/* Карточки команд. Внутреннего скролл-контейнера НЕТ: список живёт
+          в прокрутке самого модала (flex-1 overflow-y-auto) и занимает всю
+          доступную высоту — вложенные полосы прокрутки делали блок тесным. */}
+      <div className="flex flex-col gap-2">
         {teams.map((team) => {
           const rows = grouped.get(team.id) ?? [];
           if (rows.length === 0) return null;
@@ -317,7 +319,7 @@ function TeamCard({
           type="button"
           onClick={onToggleAll}
           title={allSelected ? 'Убрать всех из этапа' : 'Выбрать всех в этап'}
-          className="shrink-0 w-5 h-5 flex items-center justify-center"
+          className="shrink-0 -m-1.5 p-1.5"
           aria-label={allSelected ? `Убрать всех из «${title}»` : `Включить всех из «${title}»`}
         >
           <Checkbox checked={allSelected} indeterminate={selectedCount > 0 && !allSelected} />
@@ -361,7 +363,7 @@ function TeamCard({
           onClick={onToggleCollapse}
           aria-label={collapsed ? 'Развернуть' : 'Свернуть'}
           aria-expanded={!collapsed}
-          className="p-1 text-text-muted hover:text-text-primary transition shrink-0"
+          className="shrink-0 -m-1 p-1.5 text-text-muted hover:text-text-primary transition"
         >
           <ChevronDown
             size={14}
